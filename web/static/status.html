@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status - RobotJudge</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar"></nav>
+
+    <div class="main-content">
+        <div class="page-header">
+            <h1>Submission Status</h1>
+            <p class="subtitle">Judge results and per-case breakdown</p>
+        </div>
+
+        <!-- Results list -->
+        <div id="results-list">
+            <div class="loading"><span class="spinner"></span> Loading results...</div>
+        </div>
+
+        <!-- Detail panel (shown when a result is selected) -->
+        <div id="detail-panel" style="display:none">
+            <!-- Summary stats -->
+            <div class="stats-row" id="detail-stats"></div>
+
+            <!-- Per-case table -->
+            <div class="card" style="margin-bottom:16px">
+                <div class="card-header" id="detail-header">Per-Case Results</div>
+                <div class="table-container">
+                    <table id="detail-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="case_id">Case ID <span class="sort-indicator">&#9650;</span></th>
+                                <th data-sort="success_rate">Success <span class="sort-indicator">&#9650;</span></th>
+                                <th data-sort="best_cost">Best Cost <span class="sort-indicator">&#9650;</span></th>
+                                <th data-sort="mean_cost">Mean Cost <span class="sort-indicator">&#9650;</span></th>
+                                <th data-sort="p95_cost">P95 Cost <span class="sort-indicator">&#9650;</span></th>
+                                <th data-sort="p95_runtime_ms">P95 RT (ms) <span class="sort-indicator">&#9650;</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Per-run breakdown -->
+            <div class="card" id="runs-card" style="display:none">
+                <div class="card-header" id="runs-header">Per-Seed Runs</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Case ID</th>
+                                <th>Seed</th>
+                                <th>Status</th>
+                                <th>Cost</th>
+                                <th>Path Len</th>
+                                <th>Runtime</th>
+                                <th>Violations</th>
+                            </tr>
+                        </thead>
+                        <tbody id="runs-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+    <script>
+        renderNavbar('status');
+
+        let allResults = [];
+        let currentDetail = null;
+
+        async function loadResults() {
+            const container = document.getElementById('results-list');
+
+            try {
+                allResults = await API.get('/api/results');
+
+                if (allResults.length === 0) {
+                    showEmpty(container, 'No submissions yet. Go to Submit to run a solver.');
+                    return;
+                }
+
+                container.innerHTML = `
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">All Submissions</div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Run</th><th>Solver</th><th>Suite</th><th>Status</th>
+                  <th>Success Rate</th><th>Score</th><th>P95 Runtime</th><th>Runs</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${allResults.map(r => `
+                  <tr onclick="loadDetail('${r.name}')" style="cursor:pointer">
+                    <td style="font-family:var(--mono);font-size:12px">${r.run_id.substring(0, 8)}</td>
+                    <td><strong>${r.submission}</strong></td>
+                    <td>${r.suite_id}</td>
+                    <td>${verdictBadge(r.status)}</td>
+                    <td>${pctString(r.success_rate)}</td>
+                    <td style="font-family:var(--mono)">${r.score.toFixed(1)}</td>
+                    <td style="font-family:var(--mono)">${msString(r.p95_runtime)}</td>
+                    <td>${r.total_runs}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+                // Auto-load from query param
+                const params = new URLSearchParams(window.location.search);
+                const runName = params.get('run');
+                if (runName) {
+                    loadDetail(runName);
+                } else if (allResults.length > 0) {
+                    loadDetail(allResults[0].name);
+                }
+
+            } catch (e) {
+                showEmpty(container, 'Failed to load results');
+            }
+        }
+
+        async function loadDetail(name) {
+            const panel = document.getElementById('detail-panel');
+            panel.style.display = 'block';
+            currentDetail = name;
+
+            try {
+                const data = await API.get(`/api/results/${name}`);
+                const suite = data.suite;
+                const perCase = data.per_case || [];
+                const runs = data.runs || [];
+
+                // Stats
+                document.getElementById('detail-stats').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">Status</div>
+          <div class="stat-value ${suite.status === 'PASS' ? 'pass' : 'fail'}">${suite.status}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Success Rate</div>
+          <div class="stat-value">${pctString(suite.suite_success_rate)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Suite Score</div>
+          <div class="stat-value">${suite.suite_score.toFixed(1)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">P95 Runtime</div>
+          <div class="stat-value">${msString(suite.p95_runtime_ms)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Runs</div>
+          <div class="stat-value">${runs.length}</div>
+        </div>
+      `;
+
+                document.getElementById('detail-header').textContent =
+                    `Per-Case Results — ${data.submission.name} (${name})`;
+
+                // Per-case table
+                function renderPerCase() {
+                    document.getElementById('detail-body').innerHTML = perCase.map(pc => {
+                        const isFailure = pc.success_rate < 1;
+                        return `
+            <tr onclick="showRuns('${pc.case_id}')" style="cursor:pointer;${isFailure ? 'background:var(--wa-bg)' : ''}">
+              <td>
+                <a href="/problem/${pc.case_id}" onclick="event.stopPropagation()" style="font-weight:500">${pc.case_id}</a>
+              </td>
+              <td>${pc.success_rate >= 1 ? verdictBadge('AC') : `<span style="color:var(--wa);font-weight:700;font-family:var(--mono)">${pctString(pc.success_rate)}</span>`}</td>
+              <td style="font-family:var(--mono)">${costString(pc.best_cost)}</td>
+              <td style="font-family:var(--mono)">${costString(pc.mean_cost)}</td>
+              <td style="font-family:var(--mono)">${costString(pc.p95_cost)}</td>
+              <td style="font-family:var(--mono)">${msString(pc.p95_runtime_ms)}</td>
+            </tr>
+          `;
+                    }).join('');
+                }
+                renderPerCase();
+                makeSortable(document.getElementById('detail-table'), perCase, renderPerCase);
+
+                // Store runs for drill-down
+                window._allRuns = runs;
+
+            } catch (e) {
+                document.getElementById('detail-stats').innerHTML = `<p style="color:var(--wa)">Failed to load details</p>`;
+            }
+        }
+
+        function showRuns(caseId) {
+            const card = document.getElementById('runs-card');
+            card.style.display = 'block';
+            document.getElementById('runs-header').textContent = `Per-Seed Runs — ${caseId}`;
+
+            const runs = (window._allRuns || []).filter(r => r.case_id === caseId);
+
+            document.getElementById('runs-body').innerHTML = runs.map(r => `
+      <tr style="${r.status !== 'AC' ? 'background:var(--wa-bg)' : ''}">
+        <td><a href="/problem/${r.case_id}">${r.case_id}</a></td>
+        <td style="font-family:var(--mono)">${r.seed}</td>
+        <td>${verdictBadge(r.status)}</td>
+        <td style="font-family:var(--mono)">${costString(r.cost)}</td>
+        <td style="font-family:var(--mono)">${costString(r.path_length)}</td>
+        <td style="font-family:var(--mono)">${msString(r.runtime_ms)}</td>
+        <td style="font-size:11px;color:var(--text-secondary)">${(r.violations || []).join(', ') || '-'}</td>
+      </tr>
+    `).join('');
+
+            card.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        loadResults();
+    </script>
+
+</body>
+
+</html>

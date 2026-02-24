@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Problems - RobotJudge</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+  <nav class="navbar" id="navbar"></nav>
+
+  <div class="main-content">
+    <div class="page-header">
+      <h1>Problems</h1>
+      <p class="subtitle">GridPath testcases — click any case to view details and grid visualization</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row"></div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <div class="filter-group" id="tier-filters">
+        <button class="filter-btn active" data-tier="all">All</button>
+        <button class="filter-btn" data-tier="easy">Easy</button>
+        <button class="filter-btn" data-tier="medium">Medium</button>
+        <button class="filter-btn" data-tier="hard">Hard</button>
+      </div>
+      <input type="text" class="search-input" id="search" placeholder="Search cases...">
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="table-container" id="table-container">
+        <table id="cases-table">
+          <thead>
+            <tr>
+              <th data-sort="id">Case ID <span class="sort-indicator">&#9650;</span></th>
+              <th data-sort="tier">Tier <span class="sort-indicator">&#9650;</span></th>
+              <th data-sort="family">Family <span class="sort-indicator">&#9650;</span></th>
+              <th data-sort="rows">Size <span class="sort-indicator">&#9650;</span></th>
+              <th data-sort="moves">Moves <span class="sort-indicator">&#9650;</span></th>
+              <th>Start</th>
+              <th>Goal</th>
+            </tr>
+          </thead>
+          <tbody id="cases-body">
+            <tr>
+              <td colspan="7" class="loading-cell">
+                <div class="spinner"></div> Loading cases...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    renderNavbar('problems');
+
+    let allCases = [];
+    let activeTier = 'all';
+    let searchQuery = '';
+
+    async function loadCases() {
+      try {
+        allCases = await API.get('/api/cases');
+        renderStats();
+        renderCases();
+        setupFilters();
+        makeSortable(document.getElementById('cases-table'), allCases, renderCases);
+      } catch (e) {
+        document.getElementById('cases-body').innerHTML =
+          '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--wa)">Failed to load cases: ' + e.message + '</td></tr>';
+      }
+    }
+
+    function renderStats() {
+      const statsRow = document.getElementById('stats-row');
+      const tiers = {};
+      allCases.forEach(c => { tiers[c.tier] = (tiers[c.tier] || 0) + 1; });
+
+      statsRow.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Total Cases</div>
+        <div class="stat-value">${allCases.length}</div>
+      </div>
+      ${Object.entries(tiers).map(([t, n]) => `
+        <div class="stat-card">
+          <div class="stat-label">${t} Cases</div>
+          <div class="stat-value" style="color: ${tierColor(t)}">${n}</div>
+        </div>
+      `).join('')}
+    `;
+    }
+
+    function filteredCases() {
+      return allCases.filter(c => {
+        if (activeTier !== 'all' && c.tier !== activeTier) return false;
+        if (searchQuery && !c.id.toLowerCase().includes(searchQuery) && !c.family.toLowerCase().includes(searchQuery)) return false;
+        return true;
+      });
+    }
+
+    function renderCases() {
+      const cases = filteredCases();
+      const body = document.getElementById('cases-body');
+
+      if (cases.length === 0) {
+        body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No cases found</td></tr>';
+        return;
+      }
+
+      body.innerHTML = cases.map(c => `
+      <tr onclick="window.location='/problem/${c.id}'">
+        <td><strong style="color: var(--primary)">${c.id}</strong></td>
+        <td>${tierBadge(c.tier)}</td>
+        <td>${c.family}</td>
+        <td><span style="font-family:var(--mono)">${c.rows}&times;${c.cols}</span></td>
+        <td><span class="badge" style="background:#E3F2FD;color:#1976D2">${c.moves}</span></td>
+        <td style="font-family:var(--mono);font-size:12px">(${c.start[0]}, ${c.start[1]})</td>
+        <td style="font-family:var(--mono);font-size:12px">(${c.goal[0]}, ${c.goal[1]})</td>
+      </tr>
+    `).join('');
+    }
+
+    function setupFilters() {
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeTier = btn.dataset.tier;
+          renderCases();
+        });
+      });
+
+      document.getElementById('search').addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase();
+        renderCases();
+      });
+    }
+
+    loadCases();
+  </script>
+
+</body>
+
+</html>

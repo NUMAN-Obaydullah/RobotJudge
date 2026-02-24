@@ -1,0 +1,82 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.org/robotjudge/schemas/path.schema.json",
+    "title": "RobotJudge GridPath Output",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "version",
+        "case_id",
+        "seed",
+        "path"
+    ],
+    "properties": {
+        "version": {
+            "type": "string",
+            "const": "1.0"
+        },
+        "case_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+        },
+        "seed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+        },
+        "path": {
+            "description": "Either a list of grid cells [[r,c], ...] OR an action string list.",
+            "oneOf": [
+                {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                        "$ref": "#/$defs/cell"
+                    }
+                },
+                {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "U",
+                            "D",
+                            "L",
+                            "R",
+                            "UL",
+                            "UR",
+                            "DL",
+                            "DR"
+                        ]
+                    }
+                }
+            ]
+        },
+        "meta": {
+            "description": "Optional solver metadata (iterations, internal score, etc.).",
+            "type": "object",
+            "additionalProperties": true
+        }
+    },
+    "$defs": {
+        "cell": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "prefixItems": [
+                {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2000000
+                },
+                {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2000000
+                }
+            ]
+        }
+    }
+}

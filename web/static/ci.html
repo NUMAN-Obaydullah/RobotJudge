@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CI Pipeline - RobotJudge</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    /* ---- CI-specific styles ---- */
+    .ci-modes {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .ci-mode-tab {
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .ci-mode-tab:hover {
+      color: var(--text);
+    }
+
+    .ci-mode-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .ci-panel {
+      display: none;
+    }
+
+    .ci-panel.active {
+      display: block;
+    }
+
+    /* Parameter form */
+    .params-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .params-grid .form-group {
+      margin-bottom: 0;
+    }
+
+    .param-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .param-row .form-group {
+      flex: 1;
+    }
+
+    /* Pipeline stages */
+    .pipeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .stage {
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: -1px;
+      background: var(--surface);
+      transition: all .2s;
+    }
+
+    .stage-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 1px solid transparent;
+      transition: all .15s;
+      user-select: none;
+    }
+
+    .stage-header:hover {
+      background: var(--surface-hover);
+    }
+
+    .stage.expanded .stage-header {
+      border-bottom-color: var(--border-light);
+    }
+
+    .stage-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .stage-icon.pending {
+      background: var(--border-light);
+      color: var(--text-muted);
+    }
+
+    .stage-icon.running {
+      background: #E3F2FD;
+      color: var(--primary);
+      animation: pulse 1.2s infinite;
+    }
+
+    .stage-icon.pass {
+      background: var(--ac-bg);
+      color: var(--ac);
+    }
+
+    .stage-icon.fail {
+      background: var(--wa-bg);
+      color: var(--wa);
+    }
+
+    .stage-icon.error {
+      background: var(--wa-bg);
+      color: var(--wa);
+    }
+
+    .stage-icon.skip {
+      background: var(--border-light);
+      color: var(--text-muted);
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .stage-name {
+      flex: 1;
+    }
+
+    .stage-results {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: var(--mono);
+    }
+
+    .stage-arrow {
+      font-size: 12px;
+      color: var(--text-muted);
+      transition: transform .2s;
+    }
+
+    .stage.expanded .stage-arrow {
+      transform: rotate(90deg);
+    }
+
+    .stage-body {
+      display: none;
+      padding: 0;
+    }
+
+    .stage.expanded .stage-body {
+      display: block;
+    }
+
+    .stage-log {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 14px 18px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .stage-log .log-ok {
+      color: #4CAF50;
+    }
+
+    .stage-log .log-fail {
+      color: #F44336;
+    }
+
+    .stage-log .log-info {
+      color: #42A5F5;
+    }
+
+    /* Overall status banner */
+    .pipeline-banner {
+      padding: 16px 20px;
+      border-radius: var(--radius-lg);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-weight: 500;
+      font-size: 15px;
+    }
+
+    .pipeline-banner.pass {
+      background: var(--ac-bg);
+      color: var(--ac);
+      border: 1px solid #A5D6A7;
+    }
+
+    .pipeline-banner.fail {
+      background: var(--wa-bg);
+      color: var(--wa);
+      border: 1px solid #EF9A9A;
+    }
+
+    .pipeline-banner.running {
+      background: #E3F2FD;
+      color: var(--primary);
+      border: 1px solid #90CAF9;
+    }
+
+    .pipeline-banner .banner-icon {
+      font-size: 24px;
+    }
+
+    /* Grid preview canvas */
+    .grid-preview {
+      margin-top: 16px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .grid-preview canvas {
+      display: block;
+      width: 100%;
+      background: #1a1a2e;
+    }
+
+    .grid-preview-info {
+      background: #111;
+      color: #aaa;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-family: var(--mono);
+      display: flex;
+      gap: 20px;
+    }
+
+    .grid-preview-info span.val {
+      color: #eee;
+    }
+
+    /* Buttons row */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .params-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .params-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="navbar"></div>
+  <div class="main-content">
+
+    <div class="page-header">
+      <h1>&#9881; CI Pipeline</h1>
+      <div class="subtitle">Run and visualize the CI pipeline — schema validation, unit tests, baseline check, and
+        determinism gate</div>
+    </div>
+
+    <!-- Mode tabs -->
+    <div class="ci-modes">
+      <div class="ci-mode-tab active" data-mode="custom" onclick="switchMode('custom')">&#9881; Custom Run</div>
+      <div class="ci-mode-tab" data-mode="full" onclick="switchMode('full')">&#9654; Full Pipeline</div>
+    </div>
+
+    <!-- ======== CUSTOM RUN PANEL ======== -->
+    <div class="ci-panel active" id="panel-custom">
+
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-header">&#9881; Testcase Parameters</div>
+        <div class="card-body">
+          <div class="params-grid">
+            <div class="form-group">
+              <label>Grid Rows</label>
+              <input type="number" id="p-rows" value="50" min="5" max="500">
+            </div>
+            <div class="form-group">
+              <label>Grid Cols</label>
+              <input type="number" id="p-cols" value="50" min="5" max="500">
+            </div>
+            <div class="form-group">
+              <label>Grid Family</label>
+              <select id="p-family">
+                <option value="random_field">Random Field</option>
+                <option value="maze">Maze</option>
+                <option value="corridors">Corridors</option>
+                <option value="rooms_doors">Rooms & Doors</option>
+                <option value="traps">Traps</option>
+                <option value="narrow_passages">Narrow Passages</option>
+                <option value="high_density">High Density</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="params-grid">
+            <div class="form-group">
+              <label>Start Row</label>
+              <input type="number" id="p-sr" value="0" min="0">
+            </div>
+            <div class="form-group">
+              <label>Start Col</label>
+              <input type="number" id="p-sc" value="0" min="0">
+            </div>
+            <div class="form-group">
+              <label>Goal Row (-1 = max)</label>
+              <input type="number" id="p-gr" value="-1" min="-1">
+            </div>
+          </div>
+
+          <div class="params-grid">
+            <div class="form-group">
+              <label>Goal Col (-1 = max)</label>
+              <input type="number" id="p-gc" value="-1" min="-1">
+            </div>
+            <div class="form-group">
+              <label>Level (Tier)</label>
+              <select id="p-tier">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Moves</label>
+              <select id="p-moves">
+                <option value="4N">4N (Cardinal)</option>
+                <option value="8N" selected>8N (All directions)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="params-grid">
+            <div class="form-group">
+              <label>Time Limit (ms)</label>
+              <input type="number" id="p-timelimit" value="30000" min="100" max="120000" step="1000">
+            </div>
+            <div class="form-group">
+              <label>Solver Source</label>
+              <div
+                style="display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;height:36px">
+                <button type="button" class="solver-src-btn active" id="src-builtin"
+                  onclick="switchSolverSrc('builtin')"
+                  style="flex:1;border:none;padding:0 12px;font-size:12px;cursor:pointer;background:var(--primary);color:#fff;transition:all .15s">Built-in</button>
+                <button type="button" class="solver-src-btn" id="src-upload" onclick="switchSolverSrc('upload')"
+                  style="flex:1;border:none;border-left:1px solid var(--border);padding:0 12px;font-size:12px;cursor:pointer;background:var(--surface);color:var(--text-secondary);transition:all .15s">Upload
+                  File</button>
+              </div>
+            </div>
+            <div class="form-group" id="solver-builtin-group">
+              <label>Solver</label>
+              <select id="p-solver">
+                <option value="astar">A* (Optimal + Heuristic)</option>
+                <option value="bfs">BFS (Shortest Hop)</option>
+                <option value="dijkstra">Dijkstra (Optimal No Heuristic)</option>
+              </select>
+            </div>
+            <div class="form-group" id="solver-upload-group" style="display:none">
+              <label>Solver File (.py)</label>
+              <input type="file" id="p-solver-file" accept=".py" style="font-size:13px">
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;justify-content:flex-end">
+            <button class="btn btn-primary" id="btn-custom-run" onclick="runCustom()" style="min-width:180px">
+              &#9654; Run Custom
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom pipeline status -->
+      <div id="custom-banner" style="display:none"></div>
+      <div id="custom-pipeline" class="pipeline"></div>
+      <div id="custom-grid-preview" class="grid-preview" style="display:none">
+        <canvas id="custom-canvas" width="600" height="600"></canvas>
+        <div class="grid-preview-info" id="custom-grid-info"></div>
+      </div>
+    </div>
+
+    <!-- ======== FULL PIPELINE PANEL ======== -->
+    <div class="ci-panel" id="panel-full">
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-full-run" onclick="runFullPipeline()">&#9654; Run Full Pipeline</button>
+        <button class="btn btn-secondary" onclick="runQuickCheck()">&#9889; Quick Check (Tests Only)</button>
+      </div>
+
+      <div id="full-banner" style="display:none"></div>
+      <div id="full-pipeline" class="pipeline"></div>
+    </div>
+
+    <!-- Quick check results modal-like area -->
+    <div id="quick-check-result" class="card" style="display:none; margin-top: 16px;">
+      <div class="card-header">&#9889; Quick Check Results</div>
+      <div class="card-body" id="quick-check-body"></div>
+    </div>
+
+    <!-- Bottom tabs: workflow, artifacts, solvers -->
+    <div class="tabs" style="margin-top:24px">
+      <div class="tab active" data-tab="workflow" onclick="switchTab(this)">CI Workflow</div>
+      <div class="tab" data-tab="artifacts" onclick="switchTab(this)">Artifacts</div>
+      <div class="tab" data-tab="solvers" onclick="switchTab(this)">Solvers</div>
+    </div>
+    <div id="tab-workflow" class="tab-content">
+      <div class="card">
+        <div class="card-body">
+          <pre id="workflow-yaml"
+            style="font-family:var(--mono);font-size:12px;white-space:pre-wrap;color:#555">Loading...</pre>
+        </div>
+      </div>
+    </div>
+    <div id="tab-artifacts" class="tab-content" style="display:none">
+      <div class="card">
+        <div class="card-body" id="artifacts-list">
+          <div class="loading">
+            <div class="spinner"></div> Loading...
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="tab-solvers" class="tab-content" style="display:none">
+      <div class="card">
+        <div class="card-body" id="solvers-list">
+          <div class="loading">
+            <div class="spinner"></div> Loading...
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    renderNavbar('ci');
+
+    // ---- Tab & mode switching ----
+    function switchMode(mode) {
+      document.querySelectorAll('.ci-mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+      document.querySelectorAll('.ci-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + mode));
+    }
+
+    function switchTab(el) {
+      document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.getElementById('tab-' + el.dataset.tab).style.display = '';
+    }
+
+    // ---- SSE stage rendering ----
+    const STAGE_ICONS = { pending: '○', running: '◉', pass: '✓', fail: '✗', error: '✗', skip: '–' };
+
+    function renderStageHTML(name, index, status) {
+      return `<div class="stage" id="stage-${index}" onclick="toggleStage(this)">
+        <div class="stage-header">
+          <div class="stage-icon ${status}">${STAGE_ICONS[status] || '○'}</div>
+          <div class="stage-name">${name}</div>
+          <div class="stage-results" id="stage-results-${index}"></div>
+          <div class="stage-arrow">▶</div>
+        </div>
+        <div class="stage-body">
+          <div class="stage-log" id="stage-log-${index}">Waiting...</div>
+        </div>
+      </div>`;
+    }
+
+    function toggleStage(el) { el.classList.toggle('expanded'); }
+
+    function updateStage(index, data, pipelineEl) {
+      const stage = document.getElementById('stage-' + index);
+      if (!stage) return;
+      // Update icon
+      const icon = stage.querySelector('.stage-icon');
+      icon.className = 'stage-icon ' + data.status;
+      icon.textContent = STAGE_ICONS[data.status] || '○';
+      // Update log
+      const log = document.getElementById('stage-log-' + index);
+      if (data.output) {
+        log.innerHTML = colorizeLog(data.output);
+      }
+      // Update results
+      const resEl = document.getElementById('stage-results-' + index);
+      if (data.results) {
+        resEl.innerHTML = Object.entries(data.results)
+          .map(([k, v]) => `<span>${k}: <b>${v}</b></span>`).join('');
+      }
+      // Auto-expand on completion
+      if (data.status === 'fail' || data.status === 'error') {
+        stage.classList.add('expanded');
+      }
+    }
+
+    function colorizeLog(text) {
+      return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\[OK\]/g, '<span class="log-ok">[OK]</span>')
+        .replace(/\[FAIL\]/g, '<span class="log-fail">[FAIL]</span>')
+        .replace(/\[INFO\]/g, '<span class="log-info">[INFO]</span>')
+        .replace(/PASSED/g, '<span class="log-ok">PASSED</span>')
+        .replace(/FAILED/g, '<span class="log-fail">FAILED</span>');
+    }
+
+    function renderBanner(el, status, text) {
+      el.style.display = '';
+      el.className = 'pipeline-banner ' + status;
+      const icons = { pass: '✅', fail: '❌', running: '⏳' };
+      el.innerHTML = `<span class="banner-icon">${icons[status] || '⏳'}</span> ${text}`;
+    }
+
+    // ---- Solver source toggle ----
+    let solverSource = 'builtin';
+
+    function switchSolverSrc(src) {
+      solverSource = src;
+      document.getElementById('src-builtin').style.background = src === 'builtin' ? 'var(--primary)' : 'var(--surface)';
+      document.getElementById('src-builtin').style.color = src === 'builtin' ? '#fff' : 'var(--text-secondary)';
+      document.getElementById('src-upload').style.background = src === 'upload' ? 'var(--primary)' : 'var(--surface)';
+      document.getElementById('src-upload').style.color = src === 'upload' ? '#fff' : 'var(--text-secondary)';
+      document.getElementById('solver-builtin-group').style.display = src === 'builtin' ? '' : 'none';
+      document.getElementById('solver-upload-group').style.display = src === 'upload' ? '' : 'none';
+    }
+
+    // ---- Custom Run ----
+    let customEventSource = null;
+
+    function getParamValues() {
+      return {
+        grid_rows: document.getElementById('p-rows').value,
+        grid_cols: document.getElementById('p-cols').value,
+        start_r: document.getElementById('p-sr').value,
+        start_c: document.getElementById('p-sc').value,
+        goal_r: document.getElementById('p-gr').value,
+        goal_c: document.getElementById('p-gc').value,
+        tier: document.getElementById('p-tier').value,
+        moves: document.getElementById('p-moves').value,
+        family: document.getElementById('p-family').value,
+        time_limit: document.getElementById('p-timelimit').value,
+      };
+    }
+
+    function getSolverLabel() {
+      if (solverSource === 'upload') {
+        const fileInput = document.getElementById('p-solver-file');
+        return fileInput.files.length > 0 ? fileInput.files[0].name : 'Uploaded';
+      }
+      return document.getElementById('p-solver').value.toUpperCase();
+    }
+
+    function runCustom() {
+      const btn = document.getElementById('btn-custom-run');
+
+      // Validate upload mode
+      if (solverSource === 'upload') {
+        const fileInput = document.getElementById('p-solver-file');
+        if (!fileInput.files.length) {
+          alert('Please select a solver .py file to upload.');
+          return;
+        }
+      }
+
+      btn.disabled = true; btn.textContent = '⏳ Running...';
+
+      const pipelineEl = document.getElementById('custom-pipeline');
+      const bannerEl = document.getElementById('custom-banner');
+      const gridPreview = document.getElementById('custom-grid-preview');
+
+      const solverLabel = getSolverLabel();
+      const stageNames = ['Generating Testcase', 'Schema Validation',
+        `Running ${solverLabel}`, 'Path Validation'];
+      pipelineEl.innerHTML = stageNames.map((n, i) => renderStageHTML(n, i, 'pending')).join('');
+      renderBanner(bannerEl, 'running', 'Custom CI pipeline running...');
+      gridPreview.style.display = 'none';
+
+      let caseData = null, pathData = null;
+
+      // Shared SSE event handlers
+      function onStage(d) {
+        const stage = document.getElementById('stage-' + d.index);
+        if (stage) {
+          const icon = stage.querySelector('.stage-icon');
+          icon.className = 'stage-icon running';
+          icon.textContent = STAGE_ICONS.running;
+          document.getElementById('stage-log-' + d.index).textContent = 'Running...';
+        }
+      }
+
+      function onStageDone(d) {
+        const stages = pipelineEl.querySelectorAll('.stage-name');
+        let idx = -1;
+        stages.forEach((s, i) => { if (s.textContent === d.name) idx = i; });
+        if (idx === -1) {
+          stages.forEach((s, i) => { if (d.name && s.textContent.includes('Running') && d.name.includes('Running')) idx = i; });
+        }
+        if (idx >= 0) updateStage(idx, d, pipelineEl);
+        if (d.case_data) caseData = d.case_data;
+        if (d.path_data) pathData = d.path_data;
+      }
+
+      function onDone(d) {
+        btn.disabled = false; btn.textContent = '▶ Run Custom';
+        renderBanner(bannerEl, d.overall, d.overall === 'pass'
+          ? 'All stages passed!' : 'Pipeline failed — expand stages for details');
+        if (caseData) drawGridPreview(caseData, pathData);
+      }
+
+      function onError() {
+        btn.disabled = false; btn.textContent = '▶ Run Custom';
+        renderBanner(bannerEl, 'fail', 'Connection error — server may be busy');
+      }
+
+      if (solverSource === 'builtin') {
+        // --- Built-in solver: use EventSource (GET) ---
+        const params = new URLSearchParams({
+          ...getParamValues(),
+          solver: document.getElementById('p-solver').value,
+        });
+
+        if (customEventSource) customEventSource.close();
+        const es = new EventSource('/api/ci/run-custom?' + params.toString());
+        customEventSource = es;
+
+        es.addEventListener('stage', e => onStage(JSON.parse(e.data)));
+        es.addEventListener('stage_done', e => onStageDone(JSON.parse(e.data)));
+        es.addEventListener('done', e => { es.close(); onDone(JSON.parse(e.data)); });
+        es.onerror = () => { es.close(); onError(); };
+
+      } else {
+        // --- Upload solver: use fetch POST with manual SSE parsing ---
+        const formData = new FormData();
+        const fileInput = document.getElementById('p-solver-file');
+        formData.append('solver_file', fileInput.files[0]);
+        const pv = getParamValues();
+        for (const [k, v] of Object.entries(pv)) formData.append(k, v);
+
+        fetch('/api/ci/run-custom-upload', { method: 'POST', body: formData })
+          .then(response => {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            function processChunk({ done, value }) {
+              if (done) return;
+              buffer += decoder.decode(value, { stream: true });
+
+              // Parse SSE lines
+              const lines = buffer.split('\n');
+              buffer = lines.pop(); // keep incomplete line
+
+              let currentEvent = null;
+              for (const line of lines) {
+                if (line.startsWith('event: ')) {
+                  currentEvent = line.substring(7).trim();
+                } else if (line.startsWith('data: ') && currentEvent) {
+                  try {
+                    const data = JSON.parse(line.substring(6));
+                    if (currentEvent === 'stage') onStage(data);
+                    else if (currentEvent === 'stage_done') onStageDone(data);
+                    else if (currentEvent === 'done') onDone(data);
+                  } catch (e) { /* skip parse errors */ }
+                  currentEvent = null;
+                } else if (line.trim() === '') {
+                  currentEvent = null;
+                }
+              }
+
+              return reader.read().then(processChunk);
+            }
+
+            return reader.read().then(processChunk);
+          })
+          .catch(() => onError());
+      }
+    }
+
+    // ---- Full Pipeline ----
+    let fullEventSource = null;
+    function runFullPipeline() {
+      const btn = document.getElementById('btn-full-run');
+      btn.disabled = true; btn.textContent = '⏳ Running...';
+
+      const pipelineEl = document.getElementById('full-pipeline');
+      const bannerEl = document.getElementById('full-banner');
+
+      const stageNames = ['Testcase Generation', 'Schema Validation', 'Unit Tests',
+        'Baseline Judge Run', 'Report & Artifacts', 'Determinism Gate'];
+      pipelineEl.innerHTML = stageNames.map((n, i) => renderStageHTML(n, i, 'pending')).join('');
+      renderBanner(bannerEl, 'running', 'Full CI pipeline running... this may take a few minutes');
+
+      if (fullEventSource) fullEventSource.close();
+      const es = new EventSource('/api/ci/run-pipeline');
+      fullEventSource = es;
+
+      es.addEventListener('stage', e => {
+        const d = JSON.parse(e.data);
+        const stage = document.getElementById('stage-' + d.index);
+        if (stage) {
+          const icon = stage.querySelector('.stage-icon');
+          icon.className = 'stage-icon running';
+          icon.textContent = STAGE_ICONS.running;
+          document.getElementById('stage-log-' + d.index).textContent = 'Running...';
+        }
+      });
+
+      es.addEventListener('log', e => {
+        const d = JSON.parse(e.data);
+        const stages = pipelineEl.querySelectorAll('.stage-name');
+        stages.forEach((s, i) => {
+          if (s.textContent === d.stage) {
+            const log = document.getElementById('stage-log-' + i);
+            if (log) log.innerHTML += '\n' + colorizeLog(d.line);
+          }
+        });
+      });
+
+      es.addEventListener('stage_done', e => {
+        const d = JSON.parse(e.data);
+        const stages = pipelineEl.querySelectorAll('.stage-name');
+        let idx = -1;
+        stages.forEach((s, i) => { if (s.textContent === d.name) idx = i; });
+        if (idx >= 0) updateStage(idx, d, pipelineEl);
+      });
+
+      es.addEventListener('done', e => {
+        const d = JSON.parse(e.data);
+        es.close();
+        btn.disabled = false; btn.textContent = '▶ Run Full Pipeline';
+        renderBanner(bannerEl, d.overall, d.overall === 'pass'
+          ? `All ${d.stages?.length || 6} stages passed!` : 'Pipeline failed — expand stages for details');
+      });
+
+      es.onerror = () => {
+        es.close();
+        btn.disabled = false; btn.textContent = '▶ Run Full Pipeline';
+        renderBanner(bannerEl, 'fail', 'Connection error — server may be busy');
+      };
+    }
+
+    // ---- Quick Check ----
+    async function runQuickCheck() {
+      const el = document.getElementById('quick-check-result');
+      const body = document.getElementById('quick-check-body');
+      el.style.display = '';
+      body.innerHTML = '<div class="loading"><div class="spinner"></div> Running tests...</div>';
+      try {
+        const res = await fetch('/api/ci/quick-check');
+        const d = await res.json();
+        body.innerHTML = `
+          <div style="margin-bottom:12px">
+            <span class="badge ${d.status === 'pass' ? 'badge-ac' : 'badge-wa'}">${d.status === 'pass' ? 'ALL PASSED' : 'FAILURES DETECTED'}</span>
+            <span style="margin-left:12px;font-family:var(--mono);font-size:13px">${d.passed}/${d.total} passed</span>
+          </div>
+          <div class="stage-log" style="max-height:300px">${colorizeLog(d.output || '')}</div>`;
+      } catch (e) {
+        body.innerHTML = `<div style="color:var(--wa)">Error: ${e.message}</div>`;
+      }
+    }
+
+    // ---- Grid preview ----
+    function drawGridPreview(caseData, pathData) {
+      const container = document.getElementById('custom-grid-preview');
+      const canvas = document.getElementById('custom-canvas');
+      const info = document.getElementById('custom-grid-info');
+      container.style.display = '';
+
+      const grid = caseData.grid;
+      const rows = grid.length;
+      const cols = grid[0].length;
+      const cellSize = Math.max(2, Math.min(12, Math.floor(600 / Math.max(rows, cols))));
+      canvas.width = cols * cellSize;
+      canvas.height = rows * cellSize;
+
+      const ctx = canvas.getContext('2d');
+      // Draw grid
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          ctx.fillStyle = grid[r][c] === 0 ? '#2a2a4a' : '#6a6a8a';
+          ctx.fillRect(c * cellSize, r * cellSize, cellSize - 0.5, cellSize - 0.5);
+        }
+      }
+
+      // Draw path
+      if (pathData && pathData.path) {
+        const path = pathData.path;
+        for (let i = 0; i < path.length; i++) {
+          const t = i / Math.max(1, path.length - 1);
+          const rr = Math.round(66 + 189 * (1 - t));
+          const gg = Math.round(165 + 90 * t);
+          const bb = Math.round(245 - 200 * t);
+          ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
+          ctx.fillRect(path[i][1] * cellSize, path[i][0] * cellSize, cellSize, cellSize);
+        }
+      }
+
+      // Draw start & goal
+      const [sr, sc] = caseData.start;
+      const [gr, gc] = caseData.goal;
+      ctx.fillStyle = '#4CAF50';
+      ctx.fillRect(sc * cellSize, sr * cellSize, cellSize, cellSize);
+      ctx.fillStyle = '#F44336';
+      ctx.fillRect(gc * cellSize, gr * cellSize, cellSize, cellSize);
+
+      const pathLen = pathData?.path?.length || '—';
+      info.innerHTML = `
+        <span>Grid: <span class="val">${rows}×${cols}</span></span>
+        <span>Start: <span class="val">[${sr},${sc}]</span></span>
+        <span>Goal: <span class="val">[${gr},${gc}]</span></span>
+        <span>Path: <span class="val">${pathLen} cells</span></span>
+        <span style="margin-left:auto">
+          <span style="display:inline-block;width:10px;height:10px;background:#4CAF50;border-radius:2px"></span> Start
+          <span style="display:inline-block;width:10px;height:10px;background:#F44336;border-radius:2px;margin-left:8px"></span> Goal
+          <span style="display:inline-block;width:10px;height:10px;background:#42A5F5;border-radius:2px;margin-left:8px"></span> Path
+        </span>`;
+    }
+
+    // ---- Load bottom tabs data ----
+    async function loadWorkflow() {
+      try {
+        const res = await fetch('/api/ci/workflow');
+        if (res.ok) {
+          const d = await res.json();
+          document.getElementById('workflow-yaml').textContent = d.content || 'No workflow found';
+        }
+      } catch (e) { document.getElementById('workflow-yaml').textContent = 'Error loading workflow'; }
+    }
+
+    async function loadArtifacts() {
+      try {
+        const res = await fetch('/api/results');
+        const data = await res.json();
+        const el = document.getElementById('artifacts-list');
+        if (!data.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">No artifacts yet</div></div>'; return; }
+        el.innerHTML = '<table><thead><tr><th>Run</th><th>Cases</th><th>Status</th></tr></thead><tbody>' +
+          data.map(r => `<tr><td>${r.name || r.run_name || '—'}</td><td>${r.total_runs || '—'}</td>
+            <td><span class="badge ${r.status === 'PASS' ? 'badge-ac' : 'badge-wa'}">${r.status || '?'}</span></td></tr>`).join('') +
+          '</tbody></table>';
+      } catch (e) { document.getElementById('artifacts-list').innerHTML = `<div style="color:var(--wa)">Error: ${e.message}</div>`; }
+    }
+
+    async function loadSolvers() {
+      try {
+        const res = await fetch('/api/baselines');
+        const data = await res.json();
+        const el = document.getElementById('solvers-list');
+        if (!data.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🤖</div><div class="empty-text">No solvers found</div></div>'; return; }
+        el.innerHTML = '<table><thead><tr><th>Solver</th><th>Filename</th></tr></thead><tbody>' +
+          data.map(s => `<tr><td style="font-weight:500">${s.name}</td><td style="font-family:var(--mono);font-size:12px">${s.filename}</td></tr>`).join('') +
+          '</tbody></table>';
+      } catch (e) { document.getElementById('solvers-list').innerHTML = `<div style="color:var(--wa)">Error: ${e.message}</div>`; }
+    }
+
+    // Init
+    loadWorkflow();
+    loadArtifacts();
+    loadSolvers();
+  </script>
+</body>
+
+</html>

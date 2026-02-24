@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problem - RobotJudge</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .code-viewer {
+            background: #1e1e1e;
+            border-radius: 6px;
+            overflow: hidden;
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .code-viewer .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 14px;
+            background: #2d2d2d;
+            color: #ccc;
+            font-size: 12px;
+        }
+
+        .code-viewer .code-header .lang-badge {
+            background: #0e639c;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .code-viewer pre {
+            margin: 0;
+            padding: 12px 0;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .code-viewer .code-line {
+            display: flex;
+            padding: 0 14px;
+        }
+
+        .code-viewer .code-line:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .code-viewer .line-num {
+            color: #555;
+            min-width: 40px;
+            text-align: right;
+            padding-right: 16px;
+            user-select: none;
+        }
+
+        .code-viewer .line-content {
+            color: #d4d4d4;
+            white-space: pre;
+        }
+
+        /* Syntax highlights */
+        .code-viewer .kw {
+            color: #569cd6;
+        }
+
+        .code-viewer .fn {
+            color: #dcdcaa;
+        }
+
+        .code-viewer .st {
+            color: #ce9178;
+        }
+
+        .code-viewer .cm {
+            color: #6a9955;
+            font-style: italic;
+        }
+
+        .code-viewer .num {
+            color: #b5cea8;
+        }
+
+        .code-viewer .dec {
+            color: #c586c0;
+        }
+
+        .code-viewer .op {
+            color: #d4d4d4;
+        }
+
+        .code-viewer .cls {
+            color: #4ec9b0;
+        }
+
+        /* Animation controls */
+        .anim-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: #111;
+            border-top: 1px solid #333;
+            color: #ccc;
+            font-size: 12px;
+            font-family: var(--mono);
+        }
+
+        .anim-controls button {
+            padding: 5px 14px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background: #222;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.15s;
+        }
+
+        .anim-controls button:hover {
+            background: #333;
+        }
+
+        .anim-controls button.playing {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        .speed-slider {
+            width: 100px;
+        }
+
+        .anim-progress {
+            flex: 1;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .anim-progress .fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.05s;
+        }
+
+        .solver-select {
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            background: var(--surface);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar"></nav>
+
+    <div class="main-content">
+        <!-- Header -->
+        <div class="page-header" id="problem-header">
+            <h1>Loading...</h1>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" id="tabs">
+            <div class="tab active" data-tab="description">Description</div>
+            <div class="tab" data-tab="grid">Grid &amp; Path Animation</div>
+            <div class="tab" data-tab="code">Solver Code</div>
+            <div class="tab" data-tab="results">Submission Results</div>
+        </div>
+
+        <!-- Description Tab -->
+        <div id="tab-description" class="tab-content">
+            <div class="problem-layout">
+                <div class="card">
+                    <div class="card-header">Case Properties</div>
+                    <div class="card-body">
+                        <ul class="problem-meta-list" id="meta-list"></ul>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+                        <span>Grid Preview</span>
+                        <select class="solver-select" id="path-solver-select" onchange="switchPathSolver()"
+                            style="font-size:12px">
+                            <option value="">No path loaded</option>
+                        </select>
+                    </div>
+                    <div class="card-body" style="padding:0">
+                        <div class="grid-viewer" id="grid-container">
+                            <canvas id="grid-canvas"></canvas>
+                            <div class="grid-tooltip" id="grid-tooltip"></div>
+                            <div class="grid-controls">
+                                <button onclick="gridRenderer.resetView()">Reset View</button>
+                                <span id="grid-info"></span>
+                            </div>
+                            <div class="grid-legend">
+                                <div class="grid-legend-item">
+                                    <div class="swatch" style="background:#1a1a2e"></div> Free
+                                </div>
+                                <div class="grid-legend-item">
+                                    <div class="swatch" style="background:#4a4a6a"></div> Obstacle
+                                </div>
+                                <div class="grid-legend-item">
+                                    <div class="swatch" style="background:#4CAF50"></div> Start
+                                </div>
+                                <div class="grid-legend-item">
+                                    <div class="swatch" style="background:#F44336"></div> Goal
+                                </div>
+                                <div class="grid-legend-item">
+                                    <div class="swatch" style="background:#42A5F5"></div> Path
+                                </div>
+                                <div id="path-info"
+                                    style="margin-left:auto;display:flex;gap:16px;color:#aaa;font-size:11px;font-family:var(--mono)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid & Animation Tab -->
+        <div id="tab-grid" class="tab-content" style="display:none">
+            <div class="card">
+                <div class="card-body" style="padding:0">
+                    <div class="grid-viewer" id="grid-container-full">
+                        <canvas id="grid-canvas-full"></canvas>
+                        <div class="grid-tooltip" id="grid-tooltip-full"></div>
+                        <div class="anim-controls">
+                            <button id="anim-play" onclick="toggleAnimation()">&#9654; Play</button>
+                            <button onclick="resetAnimation()">&#8634; Reset</button>
+                            <span>Speed:</span>
+                            <input type="range" class="speed-slider" id="speed-slider" min="1" max="100" value="20">
+                            <div class="anim-progress" id="anim-progress" onclick="seekAnimation(event)">
+                                <div class="fill" id="anim-fill"></div>
+                            </div>
+                            <span id="anim-step">0 / 0</span>
+                            <button onclick="fullGridRenderer.resetView()">Reset View</button>
+                        </div>
+                        <div class="grid-legend">
+                            <div class="grid-legend-item">
+                                <div class="swatch" style="background:#1a1a2e"></div> Free
+                            </div>
+                            <div class="grid-legend-item">
+                                <div class="swatch" style="background:#4a4a6a"></div> Obstacle
+                            </div>
+                            <div class="grid-legend-item">
+                                <div class="swatch" style="background:#4CAF50"></div> Start
+                            </div>
+                            <div class="grid-legend-item">
+                                <div class="swatch" style="background:#F44336"></div> Goal
+                            </div>
+                            <div class="grid-legend-item">
+                                <div class="swatch" style="background:#42A5F5"></div> Path
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solver Code Tab -->
+        <div id="tab-code" class="tab-content" style="display:none">
+            <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
+                <label style="font-weight:500;font-size:13px">Select Solver:</label>
+                <select class="solver-select" id="solver-select" onchange="loadSolverCode()">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+            <div id="code-container">
+                <div class="loading"><span class="spinner"></span> Loading solvers...</div>
+            </div>
+        </div>
+
+        <!-- Results Tab -->
+        <div id="tab-results" class="tab-content" style="display:none">
+            <div id="results-container">
+                <div class="loading"><span class="spinner"></span> Loading results...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+    <script src="/static/grid-renderer.js"></script>
+    <script>
+        renderNavbar('problems');
+
+        const caseId = window.location.pathname.split('/problem/')[1];
+        let caseData = null;
+        let gridRenderer = null;
+        let fullGridRenderer = null;
+        let baselinePath = null;
+        let fullPathCells = null;
+        let allPathResults = {};  // { runName: { runs, per_case, submission, paths } }
+
+        // ========== Animation State ==========
+        let animFrame = 0;
+        let animPlaying = false;
+        let animTimer = null;
+
+        function toggleAnimation() {
+            if (!fullPathCells || fullPathCells.length === 0) return;
+            animPlaying = !animPlaying;
+            const btn = document.getElementById('anim-play');
+            if (animPlaying) {
+                btn.innerHTML = '&#9646;&#9646; Pause';
+                btn.classList.add('playing');
+                stepAnimation();
+            } else {
+                btn.innerHTML = '&#9654; Play';
+                btn.classList.remove('playing');
+                if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+            }
+        }
+
+        function stepAnimation() {
+            if (!animPlaying || !fullPathCells) return;
+            animFrame++;
+            if (animFrame > fullPathCells.length) {
+                animPlaying = false;
+                document.getElementById('anim-play').innerHTML = '&#9654; Play';
+                document.getElementById('anim-play').classList.remove('playing');
+                return;
+            }
+            // Show partial path
+            fullGridRenderer.setPath({ path: fullPathCells.slice(0, animFrame) });
+            updateAnimUI();
+
+            const speed = parseInt(document.getElementById('speed-slider').value);
+            const delay = Math.max(5, 500 / speed);
+            animTimer = setTimeout(stepAnimation, delay);
+        }
+
+        function resetAnimation() {
+            animPlaying = false;
+            animFrame = 0;
+            if (animTimer) { clearTimeout(animTimer); animTimer = null; }
+            document.getElementById('anim-play').innerHTML = '&#9654; Play';
+            document.getElementById('anim-play').classList.remove('playing');
+            if (fullGridRenderer) fullGridRenderer.setPath(null);
+            updateAnimUI();
+        }
+
+        function seekAnimation(e) {
+            if (!fullPathCells) return;
+            const rect = e.target.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            animFrame = Math.round(pct * fullPathCells.length);
+            fullGridRenderer.setPath({ path: fullPathCells.slice(0, animFrame) });
+            updateAnimUI();
+        }
+
+        function updateAnimUI() {
+            const total = fullPathCells ? fullPathCells.length : 0;
+            document.getElementById('anim-step').textContent = `${animFrame} / ${total}`;
+            const pct = total > 0 ? (animFrame / total * 100) : 0;
+            document.getElementById('anim-fill').style.width = pct + '%';
+        }
+
+        // ========== Tabs ==========
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.dataset.tab).style.display = 'block';
+
+                if (tab.dataset.tab === 'grid' && fullGridRenderer && caseData) {
+                    fullGridRenderer.setCase(caseData);
+                    resetAnimation();
+                }
+                if (tab.dataset.tab === 'code') loadSolversList();
+                if (tab.dataset.tab === 'results') loadResults();
+            });
+        });
+
+        // ========== Load Case ==========
+        async function loadCase() {
+            try {
+                caseData = await API.get(`/api/case/${caseId}`);
+                const meta = caseData.meta || {};
+                const grid = caseData.grid;
+                const rows = Array.isArray(grid) ? grid.length : grid.rows;
+                const cols = Array.isArray(grid) ? (grid[0] ? grid[0].length : 0) : grid.cols;
+
+                document.getElementById('problem-header').innerHTML = `
+        <h1>${caseData.id} ${tierBadge(meta.tier || '')}</h1>
+        <p class="subtitle">GridPath testcase — ${caseData.moves} movement — ${rows}&times;${cols} grid</p>
+      `;
+
+                document.getElementById('meta-list').innerHTML = `
+        <li><span class="label">Case ID</span><span class="value">${caseData.id}</span></li>
+        <li><span class="label">Grid Size</span><span class="value">${rows} &times; ${cols}</span></li>
+        <li><span class="label">Moves</span><span class="value">${caseData.moves}</span></li>
+        <li><span class="label">Start</span><span class="value">(${caseData.start[0]}, ${caseData.start[1]})</span></li>
+        <li><span class="label">Goal</span><span class="value">(${caseData.goal[0]}, ${caseData.goal[1]})</span></li>
+        <li><span class="label">Family</span><span class="value">${meta.family || '-'}</span></li>
+        <li><span class="label">Tier</span><span class="value">${meta.tier || '-'}</span></li>
+        <li><span class="label">Has Cell Cost</span><span class="value">${caseData.cell_cost ? 'Yes' : 'No'}</span></li>
+        ${caseData.limits ? `
+          <li><span class="label">Time Limit</span><span class="value">${caseData.limits.time_ms || '-'} ms</span></li>
+          <li><span class="label">Memory Limit</span><span class="value">${caseData.limits.mem_mb || '-'} MB</span></li>
+        ` : ''}
+      `;
+
+                gridRenderer = new GridRenderer(
+                    document.getElementById('grid-canvas'),
+                    { tooltip: document.getElementById('grid-tooltip') }
+                );
+                gridRenderer.setCase(caseData);
+                document.getElementById('grid-info').textContent = `${rows}x${cols} cells`;
+
+                fullGridRenderer = new GridRenderer(
+                    document.getElementById('grid-canvas-full'),
+                    { tooltip: document.getElementById('grid-tooltip-full') }
+                );
+
+                loadBaselinePath();
+            } catch (e) {
+                document.getElementById('problem-header').innerHTML = `
+        <h1>Case Not Found</h1>
+        <p class="subtitle">Could not load case: ${caseId}</p>
+      `;
+            }
+        }
+
+        async function loadBaselinePath() {
+            try {
+                const results = await API.get('/api/results');
+                const select = document.getElementById('path-solver-select');
+                select.innerHTML = '';
+
+                if (results.length === 0) {
+                    select.innerHTML = '<option value="">No results available</option>';
+                    return;
+                }
+
+                // Load path data for each result set
+                for (const res of results) {
+                    try {
+                        const caseResults = await API.get(`/api/results/${res.name}/case/${caseId}`);
+                        if (caseResults.paths && caseResults.paths.length > 0) {
+                            const solverName = res.submission || res.name;
+                            allPathResults[res.name] = {
+                                ...caseResults,
+                                submission: solverName,
+                                pathObj: caseResults.paths[0],
+                            };
+                            select.innerHTML += `<option value="${res.name}">${solverName} (${res.name})</option>`;
+                        }
+                    } catch (e) { /* skip */ }
+                }
+
+                if (select.options.length === 0) {
+                    select.innerHTML = '<option value="">No paths for this case</option>';
+                    return;
+                }
+
+                // Auto-select first (prefer baseline)
+                const defaultKey = allPathResults['baseline'] ? 'baseline' : Object.keys(allPathResults)[0];
+                select.value = defaultKey;
+                switchPathSolver();
+
+            } catch (e) { /* no results */ }
+        }
+
+        function switchPathSolver() {
+            const select = document.getElementById('path-solver-select');
+            const key = select.value;
+            const infoEl = document.getElementById('path-info');
+
+            if (!key || !allPathResults[key]) {
+                if (gridRenderer) gridRenderer.setPath(null);
+                infoEl.innerHTML = '';
+                baselinePath = null;
+                fullPathCells = null;
+                updateAnimUI();
+                return;
+            }
+
+            const data = allPathResults[key];
+            baselinePath = data.pathObj;
+            gridRenderer.setPath(baselinePath);
+
+            // Show path info
+            const run0 = (data.runs && data.runs[0]) || {};
+            const pathLen = baselinePath.path ? baselinePath.path.length : '—';
+            infoEl.innerHTML = `
+                <span>Solver: <b style="color:#eee">${data.submission}</b></span>
+                <span>Path: <b style="color:#eee">${pathLen} cells</b></span>
+                ${run0.runtime_ms !== undefined ? `<span>Time: <b style="color:#eee">${run0.runtime_ms}ms</b></span>` : ''}
+                ${run0.status ? `<span>Verdict: <b style="color:${run0.status === 'AC' ? '#4CAF50' : '#F44336'}">${run0.status}</b></span>` : ''}
+            `;
+
+            // Extract cells for animation
+            const p = baselinePath.path || baselinePath;
+            if (Array.isArray(p) && p.length > 0) {
+                if (typeof p[0] === 'string') {
+                    fullPathCells = actionsToPath(p, caseData.start);
+                } else {
+                    fullPathCells = p;
+                }
+            }
+            updateAnimUI();
+        }
+
+        function actionsToPath(actions, start) {
+            const dirs = { 'U': [-1, 0], 'D': [1, 0], 'L': [0, -1], 'R': [0, 1], 'UL': [-1, -1], 'UR': [-1, 1], 'DL': [1, -1], 'DR': [1, 1] };
+            const path = [[...start]];
+            let [r, c] = start;
+            for (const a of actions) { const [dr, dc] = dirs[a] || [0, 0]; r += dr; c += dc; path.push([r, c]); }
+            return path;
+        }
+
+        // ========== Solver Code Viewer ==========
+        let solversLoaded = false;
+
+        async function loadSolversList() {
+            if (solversLoaded) return;
+            try {
+                const solvers = await API.get('/api/solvers');
+                const sel = document.getElementById('solver-select');
+                sel.innerHTML = solvers.map(s =>
+                    `<option value="${s.type}/${s.filename}">${s.filename} (${s.type})</option>`
+                ).join('');
+                solversLoaded = true;
+                loadSolverCode();
+            } catch (e) {
+                document.getElementById('code-container').innerHTML =
+                    '<div class="empty-state"><div class="empty-text">Failed to load solvers</div></div>';
+            }
+        }
+
+        async function loadSolverCode() {
+            const val = document.getElementById('solver-select').value;
+            if (!val) return;
+            const container = document.getElementById('code-container');
+            container.innerHTML = '<div class="loading"><span class="spinner"></span> Loading code...</div>';
+
+            try {
+                const data = await API.get(`/api/solver/${val}`);
+                const lines = data.code.split('\n');
+                container.innerHTML = `
+        <div class="code-viewer">
+          <div class="code-header">
+            <span>${data.filename} — ${data.lines} lines</span>
+            <span class="lang-badge">Python</span>
+          </div>
+          <pre>${lines.map((line, i) => {
+                    const num = i + 1;
+                    const highlighted = highlightPython(escapeHtml(line));
+                    return `<div class="code-line"><span class="line-num">${num}</span><span class="line-content">${highlighted}</span></div>`;
+                }).join('')}</pre>
+        </div>
+      `;
+            } catch (e) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-text">Failed to load code: ' + e.message + '</div></div>';
+            }
+        }
+
+        function escapeHtml(s) {
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function highlightPython(line) {
+            // Simple Python syntax highlighting
+            const keywords = ['def', 'class', 'import', 'from', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'not', 'and', 'or', 'is', 'None', 'True', 'False', 'try', 'except', 'finally', 'with', 'as', 'raise', 'pass', 'break', 'continue', 'yield', 'lambda', 'assert', 'global', 'nonlocal', 'del'];
+            const decorators = ['@staticmethod', '@classmethod', '@property', '@app', '@router'];
+
+            // Comments
+            if (/^\s*#/.test(line)) return `<span class="cm">${line}</span>`;
+
+            // Decorators
+            if (/^\s*@/.test(line)) return `<span class="dec">${line}</span>`;
+
+            // Strings (triple and single/double)
+            line = line.replace(/("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|f"(?:[^"\\]|\\.)*"|f'(?:[^'\\]|\\.)*')/g, '<span class="st">$1</span>');
+
+            // Numbers
+            line = line.replace(/\b(\d+\.?\d*)\b/g, '<span class="num">$1</span>');
+
+            // Keywords
+            for (const kw of keywords) {
+                const re = new RegExp(`\\b(${kw})\\b`, 'g');
+                line = line.replace(re, '<span class="kw">$1</span>');
+            }
+
+            // Function definitions
+            line = line.replace(/\b(def\s+)(\w+)/g, '$1<span class="fn">$2</span>');
+            line = line.replace(/\b(class\s+)(\w+)/g, '$1<span class="cls">$2</span>');
+
+            // Inline comments
+            const commentIdx = line.indexOf('# ');
+            if (commentIdx > 0 && !line.substring(0, commentIdx).includes('"') && !line.substring(0, commentIdx).includes("'")) {
+                line = line.substring(0, commentIdx) + '<span class="cm">' + line.substring(commentIdx) + '</span>';
+            }
+
+            return line;
+        }
+
+        // ========== Results ==========
+        async function loadResults() {
+            const container = document.getElementById('results-container');
+            try {
+                const results = await API.get('/api/results');
+                if (results.length === 0) {
+                    showEmpty(container, 'No results available. Submit a solver first.');
+                    return;
+                }
+
+                let html = '';
+                for (const res of results) {
+                    try {
+                        const caseResults = await API.get(`/api/results/${res.name}/case/${caseId}`);
+                        const runs = caseResults.runs || [];
+                        const agg = caseResults.per_case;
+
+                        html += `
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-header">
+                ${res.submission} — ${verdictBadge(res.status)}
+                ${agg ? ` <span style="margin-left:12px;font-size:12px;color:var(--text-secondary)">Success: ${pctString(agg.success_rate)} | P95 Cost: ${costString(agg.p95_cost)}</span>` : ''}
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead><tr><th>Seed</th><th>Status</th><th>Cost</th><th>Path Length</th><th>Runtime</th></tr></thead>
+                  <tbody>
+                    ${runs.map(r => `
+                      <tr>
+                        <td style="font-family:var(--mono)">${r.seed}</td>
+                        <td>${verdictBadge(r.status)}</td>
+                        <td style="font-family:var(--mono)">${costString(r.cost)}</td>
+                        <td style="font-family:var(--mono)">${costString(r.path_length)}</td>
+                        <td style="font-family:var(--mono)">${msString(r.runtime_ms)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+                    } catch (e) { /* skip */ }
+                }
+
+                container.innerHTML = html || '<div class="empty-state"><div class="empty-text">No results for this case</div></div>';
+            } catch (e) {
+                showEmpty(container, 'Failed to load results');
+            }
+        }
+
+        loadCase();
+    </script>
+
+</body>
+
+</html>

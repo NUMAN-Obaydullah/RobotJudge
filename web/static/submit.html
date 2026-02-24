@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit - RobotJudge</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar"></nav>
+
+    <div class="main-content">
+        <div class="page-header">
+            <h1>Submit Solution</h1>
+            <p class="subtitle">Upload your solver script to be judged against the public testcases</p>
+        </div>
+
+        <div class="submit-layout">
+            <!-- Left: Upload + Config -->
+            <div>
+                <div class="card" style="margin-bottom:16px">
+                    <div class="card-header">Solver File</div>
+                    <div class="card-body">
+                        <div class="upload-zone" id="upload-zone"
+                            onclick="document.getElementById('file-input').click()">
+                            <div class="upload-icon">&#128196;</div>
+                            <div class="upload-text" id="upload-text">Click or drag to upload your .py solver</div>
+                            <div class="upload-hint">Must implement the CLI contract: python solver.py --case
+                                &lt;case.json&gt; --seed &lt;int&gt; --out &lt;path.json&gt;</div>
+                        </div>
+                        <input type="file" id="file-input" accept=".py" style="display:none">
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom:16px">
+                    <div class="card-header">Configuration</div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Seed Range</label>
+                            <input type="text" id="seeds-input" value="0..4" placeholder="e.g. 0..99 or 0,1,2,3">
+                        </div>
+                        <div class="form-group">
+                            <label>Time Limit (ms)</label>
+                            <input type="number" id="time-limit-input" value="30000" min="1000" max="600000">
+                        </div>
+                        <button class="btn btn-primary" id="submit-btn" disabled onclick="submitSolver()">
+                            &#9654; Submit
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Status + History -->
+            <div>
+                <!-- Active Job -->
+                <div class="card" style="margin-bottom:16px" id="active-job-card" style="display:none">
+                    <div class="card-header">Current Submission</div>
+                    <div class="card-body" id="active-job-body">
+                        <div class="empty-state">
+                            <div class="empty-icon">&#128640;</div>
+                            <div class="empty-text">No active submission</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History -->
+                <div class="card">
+                    <div class="card-header">Submission History</div>
+                    <div class="card-body" id="history-body">
+                        <div class="loading"><span class="spinner"></span> Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+    <script>
+        renderNavbar('submit');
+
+        let selectedFile = null;
+        let activeJobId = null;
+
+        // File upload
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadText = document.getElementById('upload-text');
+        const submitBtn = document.getElementById('submit-btn');
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                uploadText.textContent = selectedFile.name;
+                uploadZone.style.borderColor = 'var(--ac)';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Drag and drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('drag-over');
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                selectedFile = e.dataTransfer.files[0];
+                fileInput.files = e.dataTransfer.files;
+                uploadText.textContent = selectedFile.name;
+                uploadZone.style.borderColor = 'var(--ac)';
+                submitBtn.disabled = false;
+            }
+        });
+
+        async function submitSolver() {
+            if (!selectedFile) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            const formData = new FormData();
+            formData.append('solver', selectedFile);
+            formData.append('seeds', document.getElementById('seeds-input').value);
+            formData.append('time_limit', document.getElementById('time-limit-input').value);
+
+            try {
+                const result = await API.post('/api/submit', formData);
+                activeJobId = result.job_id;
+                pollJob();
+            } catch (e) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '▶ Submit';
+                alert('Submission failed: ' + e.message);
+            }
+        }
+
+        async function pollJob() {
+            if (!activeJobId) return;
+
+            const body = document.getElementById('active-job-body');
+            document.getElementById('active-job-card').style.display = 'block';
+
+            try {
+                const job = await API.get(`/api/jobs/${activeJobId}`);
+
+                if (job.status === 'queued') {
+                    body.innerHTML = `
+          <div style="text-align:center">
+            <span class="spinner" style="display:inline-block"></span>
+            <p style="color:var(--text-secondary);margin-top:8px">Queued...</p>
+          </div>
+        `;
+                    setTimeout(pollJob, 1000);
+                } else if (job.status === 'running') {
+                    body.innerHTML = `
+          <div>
+            <p style="font-weight:500">Running: ${job.solver_name}</p>
+            <div class="progress-bar"><div class="fill" style="width:50%"></div></div>
+            <p style="font-size:12px;color:var(--text-secondary)">Seeds: ${job.seeds} | Time limit: ${job.time_limit}ms</p>
+          </div>
+        `;
+                    setTimeout(pollJob, 2000);
+                } else if (job.status === 'done') {
+                    body.innerHTML = `
+          <div>
+            <p style="font-weight:500">${job.solver_name}</p>
+            <div class="progress-bar"><div class="fill done" style="width:100%"></div></div>
+            <p style="color:var(--ac);font-weight:500;margin-top:8px">Judging complete!</p>
+            <a href="/status" class="btn btn-primary" style="margin-top:12px;text-decoration:none;display:inline-block">View Results</a>
+          </div>
+        `;
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '&#9654; Submit';
+                    loadHistory();
+                } else if (job.status === 'error') {
+                    body.innerHTML = `
+          <div>
+            <p style="font-weight:500">${job.solver_name}</p>
+            <div class="progress-bar"><div class="fill error" style="width:100%"></div></div>
+            <p style="color:var(--wa);font-weight:500;margin-top:8px">Error!</p>
+            <pre style="font-size:11px;background:#f5f5f5;padding:8px;border-radius:4px;margin-top:8px;overflow-x:auto;max-height:120px">${job.error || 'Unknown error'}</pre>
+          </div>
+        `;
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '&#9654; Submit';
+                }
+            } catch (e) {
+                body.innerHTML = `<p style="color:var(--wa)">Failed to check status</p>`;
+                setTimeout(pollJob, 3000);
+            }
+        }
+
+        async function loadHistory() {
+            const body = document.getElementById('history-body');
+            try {
+                const results = await API.get('/api/results');
+                if (results.length === 0) {
+                    showEmpty(body, 'No submissions yet');
+                    return;
+                }
+
+                body.innerHTML = `
+        <table>
+          <thead><tr><th>Run</th><th>Solver</th><th>Status</th><th>Success</th><th>Score</th></tr></thead>
+          <tbody>
+            ${results.map(r => `
+              <tr onclick="window.location='/status?run=${r.name}'" style="cursor:pointer">
+                <td style="font-family:var(--mono);font-size:12px">${r.name}</td>
+                <td><strong>${r.submission}</strong></td>
+                <td>${verdictBadge(r.status)}</td>
+                <td>${pctString(r.success_rate)}</td>
+                <td style="font-family:var(--mono)">${r.score.toFixed(1)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+            } catch (e) {
+                showEmpty(body, 'Failed to load history');
+            }
+        }
+
+        loadHistory();
+    </script>
+
+</body>
+
+</html>

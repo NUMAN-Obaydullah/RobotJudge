@@ -1,0 +1,118 @@
+name: RobotJudge CI
+
+on:
+  push:
+    paths:
+      - 'submissions/**'
+      - 'baselines/**'
+      - 'robotjudge/**'
+      - 'testcases/**'
+      - 'configs/**'
+      - 'schemas/**'
+  pull_request:
+    paths:
+      - 'submissions/**'
+      - 'baselines/**'
+      - 'robotjudge/**'
+      - 'testcases/**'
+      - 'configs/**'
+      - 'schemas/**'
+
+jobs:
+  unit:
+    name: Unit Tests & Schema Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e ".[dev]"
+
+      - name: Run unit tests
+        run: python -m pytest tests/ -v --tb=short
+
+  judge:
+    name: Judge — Baseline & Submissions
+    needs: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      # ------------------------------------------------------------------
+      # Baseline sanity check
+      # ------------------------------------------------------------------
+      - name: Run baseline A* on public suite
+        run: |
+          python -m robotjudge.cli run \
+            --suite testcases/public \
+            --submission baselines/astar.py \
+            --seeds 0..4 \
+            --report-dir reports/baseline \
+            --time-limit 30000
+
+      - name: Verify baseline passes
+        run: |
+          python -c "
+          import json, sys
+          r = json.load(open('reports/baseline/results.json'))
+          status = r['suite']['status']
+          print(f'Baseline status: {status}')
+          if status != 'PASS':
+              print('ERROR: Baseline A* failed!', file=sys.stderr)
+              sys.exit(1)
+          print('Baseline OK ✅')
+          "
+
+      # ------------------------------------------------------------------
+      # Determinism gate
+      # ------------------------------------------------------------------
+      - name: Determinism check (run 1)
+        run: |
+          python -m robotjudge.cli run \
+            --suite testcases/public \
+            --submission baselines/astar.py \
+            --seeds 0..2 \
+            --report-dir reports/det1 \
+            --time-limit 30000
+
+      - name: Determinism check (run 2)
+        run: |
+          python -m robotjudge.cli run \
+            --suite testcases/public \
+            --submission baselines/astar.py \
+            --seeds 0..2 \
+            --report-dir reports/det2 \
+            --time-limit 30000
+
+      - name: Compare determinism hashes
+        run: python scripts/check_determinism.py reports/det1/results.json reports/det2/results.json
+
+      # ------------------------------------------------------------------
+      # Upload artifacts (always, even on failure)
+      # ------------------------------------------------------------------
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robotjudge-reports
+          path: reports/
+          retention-days: 30

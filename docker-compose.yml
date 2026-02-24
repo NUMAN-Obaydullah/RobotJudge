@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rj
+      POSTGRES_PASSWORD: rj
+      POSTGRES_DB: robotjudge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U rj -d robotjudge" ]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://rj:rj@db:5432/robotjudge
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./baselines:/app/baselines
+      - ./submissions:/app/submissions
+      - ./reports:/app/reports
+      - ./testcases:/app/testcases
+
+volumes:
+  pgdata:

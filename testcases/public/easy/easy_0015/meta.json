@@ -1,0 +1,10 @@
+{
+  "family": "rooms_doors",
+  "tier": "easy",
+  "generator_seed": 854001193,
+  "difficulty": "easy",
+  "grid_size": [
+    58,
+    55
+  ]
+}

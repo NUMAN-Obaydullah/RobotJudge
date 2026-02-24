@@ -1,0 +1,77 @@
+suite_id: "public-v1"
+version: "1.0"
+
+problem:
+  moves: "8N"          # "4N" or "8N"
+  diagonal_cost: "sqrt2"  # contract default for 8N
+  enforce_solvable: true
+
+seed_policy:
+  type: "range"
+  start: 0
+  count: 100           # 0..99
+
+limits:
+  time_ms: 200         # per case×seed
+  mem_mb: 512
+  max_path_len: 500000
+
+tiers:
+  - name: "easy"
+    cases: 30
+    grid_sizes: [[40, 40], [60, 60]]
+    families:
+      - family: "random_field"
+        weight: 0.40
+        obstacle_density: [0.10, 0.18]
+      - family: "rooms_doors"
+        weight: 0.35
+        rooms: [3, 6]
+        door_width: [1, 2]
+      - family: "corridors"
+        weight: 0.25
+        corridor_width: [2, 4]
+    start_goal:
+      min_manhattan: 30
+      max_manhattan: 200
+
+  - name: "medium"
+    cases: 30
+    grid_sizes: [[80, 80], [120, 120]]
+    families:
+      - family: "random_field"
+        weight: 0.30
+        obstacle_density: [0.18, 0.28]
+      - family: "maze"
+        weight: 0.45
+        braid_factor: [0.00, 0.20]
+      - family: "traps"
+        weight: 0.25
+        deadend_ratio: [0.20, 0.40]
+    start_goal:
+      min_manhattan: 80
+      max_manhattan: 500
+
+  - name: "hard"
+    cases: 40
+    grid_sizes: [[180, 180], [250, 250]]
+    families:
+      - family: "maze"
+        weight: 0.55
+        braid_factor: [0.00, 0.10]
+      - family: "narrow_passages"
+        weight: 0.25
+        passage_width: [1, 2]
+      - family: "high_density"
+        weight: 0.20
+        obstacle_density: [0.28, 0.35]
+    start_goal:
+      min_manhattan: 200
+      max_manhattan: 1200
+
+reporting:
+  aggregate_cost: "p95"
+  aggregate_runtime: "p95"
+  success_gate: 0.95
+  lambda_runtime: 0.001
+  failure_penalty: 1000000.0
