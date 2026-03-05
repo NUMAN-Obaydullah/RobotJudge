@@ -1,5 +1,4 @@
 .git
-.github
 .agent
 .pytest_cache
 __pycache__

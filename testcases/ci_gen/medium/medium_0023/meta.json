@@ -1,0 +1,10 @@
+{
+  "family": "traps",
+  "tier": "medium",
+  "generator_seed": 1566942273,
+  "difficulty": "medium",
+  "grid_size": [
+    80,
+    91
+  ]
+}

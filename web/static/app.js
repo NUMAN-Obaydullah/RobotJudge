@@ -16,22 +16,35 @@ const API = {
 };
 
 /* ---------- Navbar ---------- */
-function renderNavbar(activePage) {
+async function renderNavbar(activePage) {
     const nav = document.getElementById('navbar');
     if (!nav) return;
+
+    let versionStr = "v1.0.0";
+    try {
+        const vData = await API.get('/api/version');
+        versionStr = `v${vData.version}`;
+    } catch (e) {
+        console.warn("Could not load version", e);
+    }
 
     const pages = [
         { id: 'problems', label: 'Problems', href: '/', icon: '&#128221;' },
         { id: 'status', label: 'Status', href: '/status', icon: '&#128200;' },
         { id: 'submit', label: 'Submit', href: '/submit', icon: '&#128228;' },
         { id: 'ci', label: 'CI Pipeline', href: '/ci', icon: '&#9881;' },
+        { id: 'report', label: 'Report', href: '/report', icon: '&#128203;' },
+        { id: 'manual', label: 'Manual', href: '/manual', icon: '&#128214;' },
     ];
 
     nav.innerHTML = `
-    <a class="navbar-brand" href="/">
-      <span class="brand-icon">RJ</span>
-      RobotJudge
-    </a>
+    <div style="display: flex; flex-direction: column; padding-top: 10px;">
+      <a class="navbar-brand" href="/" style="margin-bottom: 0;">
+        <span class="brand-icon">RJ</span>
+        RobotJudge
+      </a>
+      <span style="font-size: 11px; color: var(--text-secondary); margin-left: 18px; line-height: 1;">${versionStr}</span>
+    </div>
     <ul class="navbar-nav">
       ${pages.map(p => `
         <li>

@@ -89,6 +89,25 @@ async def page_status():
 async def page_ci():
     return (STATIC_DIR / "ci.html").read_text(encoding="utf-8")
 
+@app.get("/report", response_class=HTMLResponse)
+async def page_report():
+    return (STATIC_DIR / "report.html").read_text(encoding="utf-8")
+
+@app.get("/manual", response_class=HTMLResponse)
+async def page_manual():
+    return (STATIC_DIR / "manual.html").read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# API: Version
+# ---------------------------------------------------------------------------
+
+import robotjudge
+@app.get("/api/version")
+async def api_version():
+    return {"version": robotjudge.__version__ + " (Sandbox & Vis)", "name": "RobotJudge-CI"}
+
+
 # ---------------------------------------------------------------------------
 # API — Cases
 # ---------------------------------------------------------------------------
@@ -159,6 +178,22 @@ async def api_result_report(name: str):
     return {"content": rp.read_text(encoding="utf-8")}
 
 
+@app.get("/api/results/{name}/logs")
+async def api_result_logs(name: str):
+    """Download the raw artifact logs as a ZIP file."""
+    logs_dir = REPORTS_DIR / name / "logs"
+    if not logs_dir.exists():
+        raise HTTPException(404, f"Logs for '{name}' not found")
+    
+    zip_path = REPORTS_DIR / name / "logs.zip"
+    # Create the zip if it hasn't been created yet
+    if not zip_path.exists():
+        shutil.make_archive(str(logs_dir), "zip", str(logs_dir))
+        
+    return FileResponse(zip_path, filename=f"{name}_logs.zip")
+
+
+
 # ---------------------------------------------------------------------------
 # API — Path results for a case (from baseline)
 # ---------------------------------------------------------------------------
@@ -195,7 +230,13 @@ async def api_solver_code(solver_type: str, solver_name: str):
     """Get the source code of a solver."""
     db = get_db()
     try:
-        code = get_solver_code(db, solver_type, solver_name)
+        # DB 'name' column stores the stem for baselines.
+        # Be resilient if someone sends the full filename.
+        search_name = solver_name
+        if solver_type == "baseline" and search_name.endswith(".py"):
+            search_name = search_name[:-3]
+
+        code = get_solver_code(db, solver_type, search_name)
         if code is None:
             raise HTTPException(404, f"Solver '{solver_name}' not found")
         return {
@@ -943,6 +984,7 @@ async def api_submit(
     solver: UploadFile = File(...),
     seeds: str = Form("0..4"),
     time_limit: int = Form(30000),
+    quick_run: bool = Form(False),
 ):
     """Accept a solver file and queue a judge run."""
     job_id = uuid.uuid4().hex[:8]
@@ -968,6 +1010,9 @@ async def api_submit(
     finally:
         db.close()
 
+    if quick_run:
+        seeds = "0"
+
     job_data = {
         "id": job_id,
         "status": "queued",
@@ -992,12 +1037,29 @@ async def api_submit(
     return {"job_id": job_id}
 
 
+def _parse_seeds_count(seeds_str: str) -> int:
+    if ".." in seeds_str:
+        parts = seeds_str.split("..")
+        return int(parts[1]) - int(parts[0]) + 1
+    return len(seeds_str.split(","))
+
+
 async def _run_judge(job_id: str):
     """Run the judge pipeline asynchronously."""
     job = _jobs[job_id]
     job["status"] = "running"
 
     report_dir = REPORTS_DIR / f"submission_{job_id}"
+    logs_dir = report_dir / "logs"
+    
+    # Calculate total runs
+    try:
+        case_count = len(list(TESTCASES_DIR.rglob("case.json")))
+        seed_count = _parse_seeds_count(job["seeds"])
+        job["total"] = case_count * seed_count
+    except Exception:
+        job["total"] = 0
+
     try:
         proc = await asyncio.create_subprocess_exec(
             "python", "-m", "robotjudge.cli", "run",
@@ -1011,7 +1073,16 @@ async def _run_judge(job_id: str):
             stderr=asyncio.subprocess.PIPE,
         )
 
+        async def poll_progress():
+            while proc.returncode is None:
+                if logs_dir.exists():
+                    count = len(list(logs_dir.glob("*_path.json")))
+                    job["progress"] = count
+                await asyncio.sleep(1)
+                
+        poller = asyncio.create_task(poll_progress())
         stdout, stderr = await proc.communicate()
+        poller.cancel()
 
         if proc.returncode == 0:
             job["status"] = "done"

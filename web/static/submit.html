@@ -38,12 +38,26 @@
                 <div class="card" style="margin-bottom:16px">
                     <div class="card-header">Configuration</div>
                     <div class="card-body">
-                        <div class="form-group">
-                            <label>Seed Range</label>
+                        <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                            <input type="checkbox" id="quick-run-input"
+                                onchange="document.getElementById('seed-range-group').style.opacity = this.checked ? '0.5' : '1'; document.getElementById('seeds-input').disabled = this.checked;">
+                            <label for="quick-run-input" style="margin:0; font-weight:normal;">Quick Run (Fast Feedback
+                                - 1 seed)</label>
+                        </div>
+                        <div class="form-group" id="seed-range-group">
+                            <label>Seed Range <span class="badge"
+                                    style="background:#E3F2FD;color:#1976D2;font-size:10px;margin-left:4px">Seed
+                                    Governance</span></label>
+                            <div class="upload-hint" style="margin-bottom:6px">Define the precise evaluation iterations
+                                the separate Scenario Generator will spawn.</div>
                             <input type="text" id="seeds-input" value="0..4" placeholder="e.g. 0..99 or 0,1,2,3">
                         </div>
                         <div class="form-group">
-                            <label>Time Limit (ms)</label>
+                            <label>Runtime Limit <span class="badge"
+                                    style="background:#FFEbee;color:#c62828;font-size:10px;margin-left:4px">Resource
+                                    Constraint</span></label>
+                            <div class="upload-hint" style="margin-bottom:6px">Maximum wall-clock ms allocated to the
+                                isolated Docker container.</div>
                             <input type="number" id="time-limit-input" value="30000" min="1000" max="600000">
                         </div>
                         <button class="btn btn-primary" id="submit-btn" disabled onclick="submitSolver()">
@@ -77,7 +91,7 @@
         </div>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=2.0"></script>
     <script>
         renderNavbar('submit');
 
@@ -129,6 +143,7 @@
             formData.append('solver', selectedFile);
             formData.append('seeds', document.getElementById('seeds-input').value);
             formData.append('time_limit', document.getElementById('time-limit-input').value);
+            formData.append('quick_run', document.getElementById('quick-run-input').checked);
 
             try {
                 const result = await API.post('/api/submit', formData);
@@ -159,11 +174,13 @@
         `;
                     setTimeout(pollJob, 1000);
                 } else if (job.status === 'running') {
+                    const pct = job.total > 0 ? (job.progress / job.total * 100) : 50;
+                    const progressText = job.total > 0 ? `${job.progress} / ${job.total} cases completed` : `Running...`;
                     body.innerHTML = `
           <div>
             <p style="font-weight:500">Running: ${job.solver_name}</p>
-            <div class="progress-bar"><div class="fill" style="width:50%"></div></div>
-            <p style="font-size:12px;color:var(--text-secondary)">Seeds: ${job.seeds} | Time limit: ${job.time_limit}ms</p>
+            <div class="progress-bar"><div class="fill" style="width:${pct}%; transition: width 0.3s ease;"></div></div>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:6px">${progressText} | Seeds: ${job.seeds} | Time limit: ${job.time_limit}ms</p>
           </div>
         `;
                     setTimeout(pollJob, 2000);

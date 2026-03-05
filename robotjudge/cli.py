@@ -70,6 +70,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         report_dir / "logs",
         seeds=seeds,
         time_limit_ms=time_limit,
+        sandbox=getattr(args, "sandbox", False),
     )
 
     # Load case data for grading
@@ -231,6 +232,7 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--seeds", default="0..4", help="Seeds, e.g. '0..99' or '0,1,2'")
     run.add_argument("--report-dir", default="reports", help="Output dir for reports")
     run.add_argument("--time-limit", type=int, default=30000, help="Time limit per run (ms)")
+    run.add_argument("--sandbox", action="store_true", help="Run solver in an isolated Docker sandbox")
 
     # validate
     val = sub.add_parser("validate", help="Validate a case or path file")

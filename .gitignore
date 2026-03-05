@@ -8,5 +8,8 @@ build/
 .agent/
 .gemini/
 *.log
+.env
+reports/
+paper/output/
 submissions/upload_*/
 test_upload.py

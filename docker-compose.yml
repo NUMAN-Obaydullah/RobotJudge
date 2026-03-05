@@ -30,5 +30,16 @@ services:
       - ./reports:/app/reports
       - ./testcases:/app/testcases
 
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: always
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    command:
+      - "http"
+      - "web:8000"
+    depends_on:
+      - web
+
 volumes:
   pgdata:

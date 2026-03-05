@@ -7,7 +7,7 @@
   <title>CI Pipeline - RobotJudge</title>
   <link rel="stylesheet" href="/static/style.css">
   <style>
-    /* ---- CI-specific styles ---- */
+    /* ---- Base CI Styles (Restored) ---- */
     .ci-modes {
       display: flex;
       gap: 0;
@@ -43,7 +43,6 @@
       display: block;
     }
 
-    /* Parameter form */
     .params-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -55,16 +54,6 @@
       margin-bottom: 0;
     }
 
-    .param-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    .param-row .form-group {
-      flex: 1;
-    }
-
-    /* Pipeline stages */
     .pipeline {
       display: flex;
       flex-direction: column;
@@ -138,23 +127,6 @@
       color: var(--wa);
     }
 
-    .stage-icon.skip {
-      background: var(--border-light);
-      color: var(--text-muted);
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.5;
-      }
-    }
-
     .stage-name {
       flex: 1;
     }
@@ -211,7 +183,6 @@
       color: #42A5F5;
     }
 
-    /* Overall status banner */
     .pipeline-banner {
       padding: 16px 20px;
       border-radius: var(--radius-lg);
@@ -221,31 +192,31 @@
       gap: 14px;
       font-weight: 500;
       font-size: 15px;
+      border: 1px solid transparent;
     }
 
     .pipeline-banner.pass {
       background: var(--ac-bg);
       color: var(--ac);
-      border: 1px solid #A5D6A7;
+      border-color: #A5D6A7;
     }
 
     .pipeline-banner.fail {
       background: var(--wa-bg);
       color: var(--wa);
-      border: 1px solid #EF9A9A;
+      border-color: #EF9A9A;
     }
 
     .pipeline-banner.running {
       background: #E3F2FD;
       color: var(--primary);
-      border: 1px solid #90CAF9;
+      border-color: #90CAF9;
     }
 
     .pipeline-banner .banner-icon {
       font-size: 24px;
     }
 
-    /* Grid preview canvas */
     .grid-preview {
       margin-top: 16px;
       border-radius: var(--radius-lg);
@@ -269,28 +240,159 @@
       gap: 20px;
     }
 
-    .grid-preview-info span.val {
-      color: #eee;
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
     }
 
-    /* Buttons row */
-    .btn-row {
+    /* ---- Animations & Liveliness ---- */
+    .pipeline-flow {
       display: flex;
-      gap: 12px;
+      justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin: 40px 0;
+      padding: 30px;
+      background: #f8fafc;
+      border-radius: 16px;
+      border: 1px dashed #cbd5e0;
+      position: relative;
     }
 
-    @media (max-width: 900px) {
-      .params-grid {
-        grid-template-columns: 1fr 1fr;
+    .flow-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      z-index: 2;
+      width: 100px;
+      transition: all 0.3s;
+    }
+
+    .node-icon {
+      width: 52px;
+      height: 52px;
+      background: white;
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .flow-node.active .node-icon {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      transform: scale(1.15) translateY(-5px);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .flow-node.done .node-icon {
+      border-color: var(--ac);
+      color: var(--ac);
+      background: #f0fff4;
+    }
+
+    .node-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    .flow-node.active .node-label {
+      color: var(--primary);
+    }
+
+    .flow-line {
+      position: absolute;
+      top: 56px;
+      left: 60px;
+      right: 60px;
+      height: 4px;
+      background: #e2e8f0;
+      z-index: 1;
+      border-radius: 2px;
+    }
+
+    .flow-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.6s ease;
+      box-shadow: 0 0 10px var(--primary);
+    }
+
+    @keyframes bar-pulse {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
       }
     }
 
-    @media (max-width: 600px) {
-      .params-grid {
-        grid-template-columns: 1fr;
-      }
+    .stage.running {
+      border-left: 4px solid var(--primary);
+      background: linear-gradient(270deg, #ffffff, #f0f7ff, #ffffff);
+      background-size: 200% 200%;
+      animation: bar-pulse 2s ease infinite;
+    }
+
+    .insight-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .insight-step {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .insight-step-num {
+      width: 32px;
+      height: 32px;
+      background: #edf2f7;
+      color: #4a5568;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .insight-step-content h4 {
+      margin: 0 0 4px 0;
+      color: #1a202c;
+    }
+
+    .insight-step-content p {
+      margin: 0;
+      font-size: 14px;
+      color: #4a5568;
     }
   </style>
 </head>
@@ -427,8 +529,9 @@
     <!-- ======== FULL PIPELINE PANEL ======== -->
     <div class="ci-panel" id="panel-full">
       <div class="btn-row">
-        <button class="btn btn-primary" id="btn-full-run" onclick="runFullPipeline()">&#9654; Run Full Pipeline</button>
-        <button class="btn btn-secondary" onclick="runQuickCheck()">&#9889; Quick Check (Tests Only)</button>
+        <button class="btn btn-primary" id="btn-full-run" onclick="runFullPipeline()"
+          style="padding: 12px 24px; font-size: 16px;">🚀 Execute Full Pipeline Analysis</button>
+        <button class="btn btn-secondary" onclick="runQuickCheck()">&#9889; Pytest Quick Check</button>
       </div>
 
       <div id="full-banner" style="display:none"></div>
@@ -448,10 +551,53 @@
       <div class="tab" data-tab="solvers" onclick="switchTab(this)">Solvers</div>
     </div>
     <div id="tab-workflow" class="tab-content">
-      <div class="card">
+      <div class="insight-card">
+        <h3 style="margin-top:0">Workflow Strategy Insight</h3>
+        <p style="color:#64748b; margin-bottom: 24px;">The RobotJudge-CI pipeline implements a multi-stage validation
+          strategy using the <strong>pytest</strong> framework to ensure absolute solver integrity.</p>
+
+        <div class="insight-step">
+          <div class="insight-step-num">1</div>
+          <div class="insight-step-content">
+            <h4>Environment & Test Generation</h4>
+            <p>The pipeline initializes a clean, isolated Docker environment. It programmatically generates the required
+              test suite to ensure no data stale-state exists during evaluation.</p>
+          </div>
+        </div>
+
+        <div class="insight-step">
+          <div class="insight-step-num">2</div>
+          <div class="insight-step-content">
+            <h4>Formal Schema Validation</h4>
+            <p>Every testcase and configuration file is processed through a strict JSON Schema validator. This ensures
+              full structural compliance before execution begins.</p>
+          </div>
+        </div>
+
+        <div class="insight-step">
+          <div class="insight-step-num">3</div>
+          <div class="insight-step-content">
+            <h4>Pytest Orchestrated Validation</h4>
+            <p>The core judge logic is subjected to <strong>pytest</strong> suites. We verify that reference heuristics
+              (A*, Dijkstra) perform within established cost and time tolerances.</p>
+          </div>
+        </div>
+
+        <div class="insight-step">
+          <div class="insight-step-num">4</div>
+          <div class="insight-step-content">
+            <h4>Baseline Regression & Determinism</h4>
+            <p>Final-stage verification ensures that new changes do not introduce non-deterministic search behaviors or
+              regressive metrics compared to the "Golden Master" data.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-header">Raw CI Workflow (YAML)</div>
         <div class="card-body">
           <pre id="workflow-yaml"
-            style="font-family:var(--mono);font-size:12px;white-space:pre-wrap;color:#555">Loading...</pre>
+            style="font-family:var(--mono);font-size:12px;white-space:pre-wrap;color:#555; background: #f8fafc; border: 1px solid #e2e8f0; color: #2d3748;">Loading...</pre>
         </div>
       </div>
     </div>
@@ -476,7 +622,7 @@
 
   </div>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=2.0"></script>
   <script>
     renderNavbar('ci');
 
@@ -491,6 +637,25 @@
       el.classList.add('active');
       document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
       document.getElementById('tab-' + el.dataset.tab).style.display = '';
+    }
+
+    // ---- Pipeline Flow Controller ----
+    function updateFlow(idx, status) {
+      const nodes = document.querySelectorAll('.flow-node');
+      const progress = document.getElementById('flow-progress');
+      nodes.forEach(n => {
+        const nIdx = parseInt(n.dataset.idx);
+        n.classList.toggle('active', nIdx === idx);
+        n.classList.toggle('done', nIdx < idx || (nIdx === idx && status === 'pass'));
+      });
+      const total = nodes.length - 1;
+      const pct = (idx / total) * 100;
+      progress.style.width = Math.min(pct, 100) + '%';
+    }
+
+    function resetFlow() {
+      updateFlow(-1, 'pending');
+      document.getElementById('flow-progress').style.width = '0%';
     }
 
     // ---- SSE stage rendering ----
@@ -605,6 +770,7 @@
       }
 
       btn.disabled = true; btn.textContent = '⏳ Running...';
+      resetFlow();
 
       const pipelineEl = document.getElementById('custom-pipeline');
       const bannerEl = document.getElementById('custom-banner');
@@ -621,8 +787,10 @@
 
       // Shared SSE event handlers
       function onStage(d) {
+        updateFlow(d.index, 'running');
         const stage = document.getElementById('stage-' + d.index);
         if (stage) {
+          stage.classList.add('running');
           const icon = stage.querySelector('.stage-icon');
           icon.className = 'stage-icon running';
           icon.textContent = STAGE_ICONS.running;
@@ -637,7 +805,11 @@
         if (idx === -1) {
           stages.forEach((s, i) => { if (d.name && s.textContent.includes('Running') && d.name.includes('Running')) idx = i; });
         }
-        if (idx >= 0) updateStage(idx, d, pipelineEl);
+        if (idx >= 0) {
+          updateStage(idx, d, pipelineEl);
+          document.getElementById('stage-' + idx)?.classList.remove('running');
+          if (d.status === 'pass') updateFlow(idx, 'pass');
+        }
         if (d.case_data) caseData = d.case_data;
         if (d.path_data) pathData = d.path_data;
       }
@@ -646,6 +818,7 @@
         btn.disabled = false; btn.textContent = '▶ Run Custom';
         renderBanner(bannerEl, d.overall, d.overall === 'pass'
           ? 'All stages passed!' : 'Pipeline failed — expand stages for details');
+        if (d.overall === 'pass') updateFlow(5, 'pass');
         if (caseData) drawGridPreview(caseData, pathData);
       }
 
@@ -723,6 +896,7 @@
     function runFullPipeline() {
       const btn = document.getElementById('btn-full-run');
       btn.disabled = true; btn.textContent = '⏳ Running...';
+      resetFlow();
 
       const pipelineEl = document.getElementById('full-pipeline');
       const bannerEl = document.getElementById('full-banner');
@@ -738,8 +912,10 @@
 
       es.addEventListener('stage', e => {
         const d = JSON.parse(e.data);
+        updateFlow(d.index, 'running');
         const stage = document.getElementById('stage-' + d.index);
         if (stage) {
+          stage.classList.add('running');
           const icon = stage.querySelector('.stage-icon');
           icon.className = 'stage-icon running';
           icon.textContent = STAGE_ICONS.running;
@@ -763,15 +939,20 @@
         const stages = pipelineEl.querySelectorAll('.stage-name');
         let idx = -1;
         stages.forEach((s, i) => { if (s.textContent === d.name) idx = i; });
-        if (idx >= 0) updateStage(idx, d, pipelineEl);
+        if (idx >= 0) {
+          updateStage(idx, d, pipelineEl);
+          document.getElementById('stage-' + idx)?.classList.remove('running');
+          if (d.status === 'pass') updateFlow(idx, 'pass');
+        }
       });
 
       es.addEventListener('done', e => {
         const d = JSON.parse(e.data);
         es.close();
-        btn.disabled = false; btn.textContent = '▶ Run Full Pipeline';
+        btn.disabled = false; btn.textContent = '🚀 Execute Full Pipeline Analysis';
         renderBanner(bannerEl, d.overall, d.overall === 'pass'
           ? `All ${d.stages?.length || 6} stages passed!` : 'Pipeline failed — expand stages for details');
+        if (d.overall === 'pass') updateFlow(5, 'pass');
       });
 
       es.onerror = () => {

@@ -1,0 +1,17 @@
+# Minimal sandbox environment for RobotJudge-CI submissions
+FROM python:3.12-slim
+
+# Create a non-root user to run the untrusted code
+RUN useradd -ms /bin/bash sandboxuser
+WORKDIR /sandbox
+
+# No extra dependencies by default, just pure Python
+# (If users require specific packages for pathfinding, they can be added here)
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir psutil
+
+# Drop privileges
+USER sandboxuser
+
+# The entrypoint will be overridden by the docker run command to execute the solver
+ENTRYPOINT ["python"]

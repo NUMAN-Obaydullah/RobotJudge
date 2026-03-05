@@ -177,6 +177,7 @@ def get_all_testcases(db: Session, *, include_grid: bool = False) -> list[dict]:
             Testcase.id, Testcase.tier, Testcase.family,
             Testcase.start, Testcase.goal, Testcase.moves,
             Testcase.rows, Testcase.cols, Testcase.meta,
+            Testcase.version,
         ).order_by(Testcase.id).all()
 
     results = []
@@ -188,6 +189,7 @@ def get_all_testcases(db: Session, *, include_grid: bool = False) -> list[dict]:
                 "id": r.id, "tier": r.tier, "family": r.family,
                 "start": r.start, "goal": r.goal, "moves": r.moves,
                 "rows": r.rows, "cols": r.cols, "meta": r.meta,
+                "version": r.version,
             })
     return results
 

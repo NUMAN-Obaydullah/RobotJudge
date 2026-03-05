@@ -14,8 +14,30 @@
 
   <div class="main-content">
     <div class="page-header">
-      <h1>Problems</h1>
-      <p class="subtitle">GridPath testcases — click any case to view details and grid visualization</p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h1>Problem Registry</h1>
+          <p class="subtitle">Version-controlled GridPath testcases (REQ-5) — click any case to view simulation grid</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <a href="/report" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">📙 Report</a>
+          <a href="/manual" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">📒 Manual</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prototype Limitations Banner -->
+    <div class="card" style="margin-bottom:20px; border-left: 4px solid #E65100; background: rgba(230, 81, 0, 0.05);">
+      <div class="card-body" style="padding: 12px 16px;">
+        <h4 style="margin-top:0; margin-bottom:8px; color:#E65100; font-size:14px;">Prototype Limitations & Roadmap</h4>
+        <p style="margin:0; font-size:12px; color:var(--text); line-height:1.5;">
+          <strong>Proxy Domain:</strong> This is a structured grid proxy domain, not a full 3D robotics simulation.<br>
+          <strong>ROS2 & Hardware:</strong> Real ROS2/robot integration and scalability benchmarking are scheduled for
+          future deployment phases.<br>
+          <strong>Safety (REQ-7):</strong> Safety enforcement is currently limited to explicit topological collisions
+          and kinematic 180-degree reversal validations. Full momentum/sensor limiters are pending.
+        </p>
+      </div>
     </div>
 
     <!-- Stats -->
@@ -40,6 +62,7 @@
             <tr>
               <th data-sort="id">Case ID <span class="sort-indicator">&#9650;</span></th>
               <th data-sort="tier">Tier <span class="sort-indicator">&#9650;</span></th>
+              <th data-sort="version">Version Control <span class="sort-indicator">&#9650;</span></th>
               <th data-sort="family">Family <span class="sort-indicator">&#9650;</span></th>
               <th data-sort="rows">Size <span class="sort-indicator">&#9650;</span></th>
               <th data-sort="moves">Moves <span class="sort-indicator">&#9650;</span></th>
@@ -49,7 +72,7 @@
           </thead>
           <tbody id="cases-body">
             <tr>
-              <td colspan="7" class="loading-cell">
+              <td colspan="8" class="loading-cell">
                 <div class="spinner"></div> Loading cases...
               </td>
             </tr>
@@ -59,7 +82,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=2.0"></script>
   <script>
     renderNavbar('problems');
 
@@ -76,7 +99,7 @@
         makeSortable(document.getElementById('cases-table'), allCases, renderCases);
       } catch (e) {
         document.getElementById('cases-body').innerHTML =
-          '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--wa)">Failed to load cases: ' + e.message + '</td></tr>';
+          '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--wa)">Failed to load cases: ' + e.message + '</td></tr>';
       }
     }
 
@@ -112,7 +135,7 @@
       const body = document.getElementById('cases-body');
 
       if (cases.length === 0) {
-        body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No cases found</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted)">No cases found</td></tr>';
         return;
       }
 
@@ -120,6 +143,7 @@
       <tr onclick="window.location='/problem/${c.id}'">
         <td><strong style="color: var(--primary)">${c.id}</strong></td>
         <td>${tierBadge(c.tier)}</td>
+        <td><span class="badge" style="background:#eee;color:#333;font-family:var(--mono);font-size:11px">${c.version || 'v1.0'}</span></td>
         <td>${c.family}</td>
         <td><span style="font-family:var(--mono)">${c.rows}&times;${c.cols}</span></td>
         <td><span class="badge" style="background:#E3F2FD;color:#1976D2">${c.moves}</span></td>

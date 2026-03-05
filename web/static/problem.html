@@ -292,7 +292,7 @@
         </div>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=2.0"></script>
     <script src="/static/grid-renderer.js"></script>
     <script>
         renderNavbar('problems');
@@ -533,7 +533,7 @@
                 const solvers = await API.get('/api/solvers');
                 const sel = document.getElementById('solver-select');
                 sel.innerHTML = solvers.map(s =>
-                    `<option value="${s.type}/${s.filename}">${s.filename} (${s.type})</option>`
+                    `<option value="${s.type}/${s.name}">${s.filename} (${s.type})</option>`
                 ).join('');
                 solversLoaded = true;
                 loadSolverCode();

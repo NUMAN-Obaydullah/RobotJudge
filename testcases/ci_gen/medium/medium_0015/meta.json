@@ -1,0 +1,10 @@
+{
+  "family": "maze",
+  "tier": "medium",
+  "generator_seed": 978815630,
+  "difficulty": "medium",
+  "grid_size": [
+    91,
+    109
+  ]
+}

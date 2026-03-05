@@ -233,6 +233,8 @@ def validate_path(
     path_length = 0.0
     cost = 0.0
     collision = False
+    safety_violations = []
+
     for i in range(len(cells)):
         r, c = cells[i]
         # Bounds check
@@ -243,6 +245,7 @@ def validate_path(
         if grid[r][c] != 0:
             violations.append(f"Cell {i} ({r},{c}) is an obstacle")
             collision = True
+        
         # Step legality + length/cost
         if i > 0:
             pr, pc = cells[i - 1]
@@ -259,9 +262,25 @@ def validate_path(
             else:
                 cost += step_cost
 
+        # Kinematic Safety Constraint (REQ-7): Prevent infinite angular acceleration
+        if i > 1:
+            pr2, pc2 = cells[i - 2]
+            pr1, pc1 = cells[i - 1]
+            cr, cc = cells[i]
+            
+            dr1, dc1 = pr1 - pr2, pc1 - pc2
+            dr2, dc2 = cr - pr1, cc - pc1
+            # Check for immediate 180-degree reversal
+            if dr1 == -dr2 and dc1 == -dc2 and (dr1 != 0 or dc1 != 0):
+                safety_violations.append(f"Safety violation at step {i}: Kinematic 180-degree reversal")
+
     metrics["path_length"] = path_length
     metrics["cost"] = cost if cell_cost_map is not None else path_length
     metrics["collision"] = collision
+    metrics["safety_violations_count"] = len(safety_violations)
+    
+    if safety_violations:
+        violations.extend(safety_violations)
 
     # max_path_len check (geometric length)
     if max_path_len is not None and len(cells) - 1 > max_path_len:

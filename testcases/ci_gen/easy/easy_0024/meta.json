@@ -1,0 +1,10 @@
+{
+  "family": "corridors",
+  "tier": "easy",
+  "generator_seed": 1193448329,
+  "difficulty": "easy",
+  "grid_size": [
+    45,
+    57
+  ]
+}

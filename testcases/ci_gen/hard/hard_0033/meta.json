@@ -1,0 +1,10 @@
+{
+  "family": "high_density",
+  "tier": "hard",
+  "generator_seed": 202363285,
+  "difficulty": "hard",
+  "grid_size": [
+    228,
+    230
+  ]
+}

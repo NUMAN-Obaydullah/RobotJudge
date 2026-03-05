@@ -1,0 +1,10 @@
+{
+  "family": "narrow_passages",
+  "tier": "hard",
+  "generator_seed": 1554762903,
+  "difficulty": "hard",
+  "grid_size": [
+    195,
+    225
+  ]
+}

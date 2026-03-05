@@ -83,6 +83,53 @@ jobs:
           "
 
       # ------------------------------------------------------------------
+      # Additional Baseline Checks
+      # ------------------------------------------------------------------
+      - name: Run baseline BFS on public suite (quick)
+        run: |
+          python -m robotjudge.cli run \
+            --suite testcases/public \
+            --submission baselines/bfs.py \
+            --seeds 0 \
+            --report-dir reports/baseline_bfs \
+            --time-limit 30000
+
+      - name: Verify BFS passes
+        run: |
+          python -c "
+          import json, sys
+          r = json.load(open('reports/baseline_bfs/results.json'))
+          status = r['suite']['status']
+          print(f'BFS status: {status}')
+          if status != 'PASS':
+              print('ERROR: Baseline BFS failed!', file=sys.stderr)
+              sys.exit(1)
+          print('BFS OK ✅')
+          "
+
+      - name: Run baseline Dijkstra on public suite (quick)
+        run: |
+          python -m robotjudge.cli run \
+            --suite testcases/public \
+            --submission baselines/dijkstra.py \
+            --seeds 0 \
+            --report-dir reports/baseline_dijkstra \
+            --time-limit 30000
+
+      - name: Verify Dijkstra passes
+        run: |
+          python -c "
+          import json, sys
+          r = json.load(open('reports/baseline_dijkstra/results.json'))
+          status = r['suite']['status']
+          print(f'Dijkstra status: {status}')
+          if status != 'PASS':
+              print('ERROR: Baseline Dijkstra failed!', file=sys.stderr)
+              sys.exit(1)
+          print('Dijkstra OK ✅')
+          "
+
+      # ------------------------------------------------------------------
       # Determinism gate
       # ------------------------------------------------------------------
       - name: Determinism check (run 1)

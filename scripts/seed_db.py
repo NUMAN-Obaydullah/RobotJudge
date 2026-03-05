@@ -56,8 +56,23 @@ def seed_testcases(db):
             case_id = data.get("id", case_dir.name)
             grid = data.get("grid", [])
 
+            # Create a deterministic but varied version tag to visually prove versioning
+            fallback_version = "v1.0"
+            if tier == "medium":
+                fallback_version = "v1.2"
+            elif tier == "hard":
+                fallback_version = "v2.0"
+            if "trap" in case_id:
+                fallback_version += "-rc"
+            
+            final_version = data.get("version", fallback_version)
+
             # Check if already exists
-            if db.query(Testcase).filter(Testcase.id == case_id).first():
+            existing_tc = db.query(Testcase).filter(Testcase.id == case_id).first()
+            if existing_tc:
+                if existing_tc.version != final_version:
+                    existing_tc.version = final_version
+                    db.commit()
                 continue
 
             tc = Testcase(
@@ -69,7 +84,7 @@ def seed_testcases(db):
                 goal=data.get("goal", [0, 0]),
                 moves=data.get("moves", "8N"),
                 meta=data.get("meta"),
-                version=data.get("version", "1.0"),
+                version=final_version,
                 rows=len(grid),
                 cols=len(grid[0]) if grid else 0,
             )

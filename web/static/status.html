@@ -2,95 +2,142 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Status - RobotJudge</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Status - RobotJudge</title>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
 
-    <nav class="navbar" id="navbar"></nav>
+  <nav class="navbar" id="navbar"></nav>
 
-    <div class="main-content">
-        <div class="page-header">
-            <h1>Submission Status</h1>
-            <p class="subtitle">Judge results and per-case breakdown</p>
-        </div>
-
-        <!-- Results list -->
-        <div id="results-list">
-            <div class="loading"><span class="spinner"></span> Loading results...</div>
-        </div>
-
-        <!-- Detail panel (shown when a result is selected) -->
-        <div id="detail-panel" style="display:none">
-            <!-- Summary stats -->
-            <div class="stats-row" id="detail-stats"></div>
-
-            <!-- Per-case table -->
-            <div class="card" style="margin-bottom:16px">
-                <div class="card-header" id="detail-header">Per-Case Results</div>
-                <div class="table-container">
-                    <table id="detail-table">
-                        <thead>
-                            <tr>
-                                <th data-sort="case_id">Case ID <span class="sort-indicator">&#9650;</span></th>
-                                <th data-sort="success_rate">Success <span class="sort-indicator">&#9650;</span></th>
-                                <th data-sort="best_cost">Best Cost <span class="sort-indicator">&#9650;</span></th>
-                                <th data-sort="mean_cost">Mean Cost <span class="sort-indicator">&#9650;</span></th>
-                                <th data-sort="p95_cost">P95 Cost <span class="sort-indicator">&#9650;</span></th>
-                                <th data-sort="p95_runtime_ms">P95 RT (ms) <span class="sort-indicator">&#9650;</span>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody id="detail-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Per-run breakdown -->
-            <div class="card" id="runs-card" style="display:none">
-                <div class="card-header" id="runs-header">Per-Seed Runs</div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Case ID</th>
-                                <th>Seed</th>
-                                <th>Status</th>
-                                <th>Cost</th>
-                                <th>Path Len</th>
-                                <th>Runtime</th>
-                                <th>Violations</th>
-                            </tr>
-                        </thead>
-                        <tbody id="runs-body"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+  <div class="main-content">
+    <div class="page-header">
+      <h1>Submission Status</h1>
+      <p class="subtitle">Judge results and per-case breakdown</p>
     </div>
 
-    <script src="/static/app.js"></script>
-    <script>
-        renderNavbar('status');
+    <!-- Results list -->
+    <div id="results-list">
+      <div class="loading"><span class="spinner"></span> Loading results...</div>
+    </div>
 
-        let allResults = [];
-        let currentDetail = null;
+    <!-- Detail panel (shown when a result is selected) -->
+    <div id="detail-panel" style="display:none">
 
-        async function loadResults() {
-            const container = document.getElementById('results-list');
+      <!-- Pipeline Viz (REQ-3) -->
+      <div class="card" style="margin-bottom:16px; background:var(--bg-secondary); border: 1px dashed var(--border);">
+        <div
+          style="padding:12px; font-size:12px; text-align:center; display:flex; justify-content:center; gap:8px; flex-wrap:wrap; align-items:center;">
+          <span class="badge" style="background:#424242;color:#fff">1. Ingress</span> &rarr;
+          <span class="badge" style="background:#1565C0;color:#fff" title="Scenario Generator (REQ-3)">2. Scenario
+            Generator</span> &rarr;
+          <span class="badge" style="background:#2E7D32;color:#fff" title="Docker Sandbox (REQ-1)">3. Execution
+            Engine</span> &rarr;
+          <span class="badge" style="background:#E65100;color:#fff" title="Mathematical Validator (REQ-3)">4. Oracle
+            Validator</span> &rarr;
+          <span class="badge" style="background:#6A1B9A;color:#fff" title="Statistical Verdicts (REQ-4)">5. Metrics
+            Aggregation</span>
+        </div>
+      </div>
 
-            try {
-                allResults = await API.get('/api/results');
+      <!-- Summary stats -->
+      <div class="stats-row" id="detail-stats"></div>
 
-                if (allResults.length === 0) {
-                    showEmpty(container, 'No submissions yet. Go to Submit to run a solver.');
-                    return;
-                }
+      <!-- Per-case table -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header" id="detail-header">Per-Case Results</div>
+        <div class="table-container">
+          <table id="detail-table">
+            <thead>
+              <tr>
+                <th data-sort="case_id">Case ID <span class="sort-indicator">&#9650;</span></th>
+                <th data-sort="success_rate">Success <span class="sort-indicator">&#9650;</span></th>
+                <th data-sort="best_cost">Best Cost <span class="sort-indicator">&#9650;</span></th>
+                <th data-sort="mean_cost">Mean Cost <span class="sort-indicator">&#9650;</span></th>
+                <th data-sort="p95_cost">P95 Cost <span class="sort-indicator">&#9650;</span></th>
+                <th data-sort="p95_runtime_ms">P95 RT (ms) <span class="sort-indicator">&#9650;</span>
+                </th>
+                <th>Breakdown</th>
+              </tr>
+            </thead>
+            <tbody id="detail-body"></tbody>
+          </table>
+        </div>
+      </div>
 
-                container.innerHTML = `
+      <!-- Per-run breakdown -->
+      <div class="card" id="runs-card" style="display:none">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span id="runs-header">Per-Seed Breakdown (REQ-2)</span>
+          <a id="runs-artifact-link" href="#" target="_blank" class="btn btn-secondary"
+            style="font-size:11px; text-decoration:none;">&#128193; Raw Artifact Logs (REQ-5)</a>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Case ID</th>
+                <th>Seed</th>
+                <th>Status</th>
+                <th>Cost</th>
+                <th>Path Len</th>
+                <th>Runtime</th>
+                <th>Validation / Safety (REQ-7)</th>
+              </tr>
+            </thead>
+            <tbody id="runs-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Visualization Modal -->
+      <div id="vis-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
+        <div
+          style="background:var(--bg-card); width:90%; max-width:850px; border-radius:8px; border:1px solid var(--border); overflow:hidden; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+
+          <div
+            style="padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <h2 style="margin:0; font-size:18px;" id="vis-title">Visualization</h2>
+              <div id="vis-meta" style="font-size:12px; color:var(--text-secondary); margin-top:4px;"></div>
+            </div>
+            <button id="vis-close" class="btn btn-secondary" style="padding:6px 12px;">Close</button>
+          </div>
+
+          <div style="padding:20px; background:#0d0d1a; position:relative; display:flex; justify-content:center;">
+            <canvas id="vis-canvas" style="border-radius:4px; max-width:100%;"></canvas>
+            <div id="vis-tooltip"
+              style="display:none; position:absolute; background:rgba(0,0,0,0.85); color:#fff; padding:4px 8px; border-radius:4px; font-size:11px; pointer-events:none; font-family:var(--mono); white-space:nowrap; z-index:10;">
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/grid-renderer.js"></script>
+  <script src="/static/app.js?v=2.0"></script>
+  <script>
+    renderNavbar('status');
+
+    let allResults = [];
+    let currentDetail = null;
+
+    async function loadResults() {
+      const container = document.getElementById('results-list');
+
+      try {
+        allResults = await API.get('/api/results');
+
+        if (allResults.length === 0) {
+          showEmpty(container, 'No submissions yet. Go to Submit to run a solver.');
+          return;
+        }
+
+        container.innerHTML = `
         <div class="card" style="margin-bottom:20px">
           <div class="card-header">All Submissions</div>
           <div class="table-container">
@@ -120,33 +167,33 @@
         </div>
       `;
 
-                // Auto-load from query param
-                const params = new URLSearchParams(window.location.search);
-                const runName = params.get('run');
-                if (runName) {
-                    loadDetail(runName);
-                } else if (allResults.length > 0) {
-                    loadDetail(allResults[0].name);
-                }
-
-            } catch (e) {
-                showEmpty(container, 'Failed to load results');
-            }
+        // Auto-load from query param
+        const params = new URLSearchParams(window.location.search);
+        const runName = params.get('run');
+        if (runName) {
+          loadDetail(runName);
+        } else if (allResults.length > 0) {
+          loadDetail(allResults[0].name);
         }
 
-        async function loadDetail(name) {
-            const panel = document.getElementById('detail-panel');
-            panel.style.display = 'block';
-            currentDetail = name;
+      } catch (e) {
+        showEmpty(container, 'Failed to load results');
+      }
+    }
 
-            try {
-                const data = await API.get(`/api/results/${name}`);
-                const suite = data.suite;
-                const perCase = data.per_case || [];
-                const runs = data.runs || [];
+    async function loadDetail(name) {
+      const panel = document.getElementById('detail-panel');
+      panel.style.display = 'block';
+      currentDetail = name;
 
-                // Stats
-                document.getElementById('detail-stats').innerHTML = `
+      try {
+        const data = await API.get(`/api/results/${name}`);
+        const suite = data.suite;
+        const perCase = data.per_case || [];
+        const runs = data.runs || [];
+
+        // Stats
+        document.getElementById('detail-stats').innerHTML = `
         <div class="stat-card">
           <div class="stat-label">Status</div>
           <div class="stat-value ${suite.status === 'PASS' ? 'pass' : 'fail'}">${suite.status}</div>
@@ -169,46 +216,48 @@
         </div>
       `;
 
-                document.getElementById('detail-header').textContent =
-                    `Per-Case Results — ${data.submission.name} (${name})`;
+        document.getElementById('detail-header').textContent =
+          `Per-Case Results — ${data.submission.name} (${name})`;
 
-                // Per-case table
-                function renderPerCase() {
-                    document.getElementById('detail-body').innerHTML = perCase.map(pc => {
-                        const isFailure = pc.success_rate < 1;
-                        return `
-            <tr onclick="showRuns('${pc.case_id}')" style="cursor:pointer;${isFailure ? 'background:var(--wa-bg)' : ''}">
+        // Per-case table
+        function renderPerCase() {
+          document.getElementById('detail-body').innerHTML = perCase.map(pc => {
+            const isFailure = pc.success_rate < 1;
+            return `
+            <tr style="${isFailure ? 'background:var(--wa-bg)' : ''}">
               <td>
-                <a href="/problem/${pc.case_id}" onclick="event.stopPropagation()" style="font-weight:500">${pc.case_id}</a>
+                <a href="/problem/${pc.case_id}" style="font-weight:500">${pc.case_id}</a>
               </td>
               <td>${pc.success_rate >= 1 ? verdictBadge('AC') : `<span style="color:var(--wa);font-weight:700;font-family:var(--mono)">${pctString(pc.success_rate)}</span>`}</td>
               <td style="font-family:var(--mono)">${costString(pc.best_cost)}</td>
               <td style="font-family:var(--mono)">${costString(pc.mean_cost)}</td>
               <td style="font-family:var(--mono)">${costString(pc.p95_cost)}</td>
               <td style="font-family:var(--mono)">${msString(pc.p95_runtime_ms)}</td>
+              <td><button class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="showRuns('${pc.case_id}')">View Seeds</button></td>
             </tr>
           `;
-                    }).join('');
-                }
-                renderPerCase();
-                makeSortable(document.getElementById('detail-table'), perCase, renderPerCase);
-
-                // Store runs for drill-down
-                window._allRuns = runs;
-
-            } catch (e) {
-                document.getElementById('detail-stats').innerHTML = `<p style="color:var(--wa)">Failed to load details</p>`;
-            }
+          }).join('');
         }
+        renderPerCase();
+        makeSortable(document.getElementById('detail-table'), perCase, renderPerCase);
 
-        function showRuns(caseId) {
-            const card = document.getElementById('runs-card');
-            card.style.display = 'block';
-            document.getElementById('runs-header').textContent = `Per-Seed Runs — ${caseId}`;
+        // Store runs for drill-down
+        window._allRuns = runs;
 
-            const runs = (window._allRuns || []).filter(r => r.case_id === caseId);
+      } catch (e) {
+        document.getElementById('detail-stats').innerHTML = `<p style="color:var(--wa)">Failed to load details</p>`;
+      }
+    }
 
-            document.getElementById('runs-body').innerHTML = runs.map(r => `
+    function showRuns(caseId) {
+      const card = document.getElementById('runs-card');
+      card.style.display = 'block';
+      document.getElementById('runs-header').textContent = `Per-Seed Breakdown — ${caseId}`;
+      document.getElementById('runs-artifact-link').href = `/api/results/${currentDetail}/logs`;
+
+      const runs = (window._allRuns || []).filter(r => r.case_id === caseId);
+
+      document.getElementById('runs-body').innerHTML = runs.map(r => `
       <tr style="${r.status !== 'AC' ? 'background:var(--wa-bg)' : ''}">
         <td><a href="/problem/${r.case_id}">${r.case_id}</a></td>
         <td style="font-family:var(--mono)">${r.seed}</td>
@@ -217,14 +266,83 @@
         <td style="font-family:var(--mono)">${costString(r.path_length)}</td>
         <td style="font-family:var(--mono)">${msString(r.runtime_ms)}</td>
         <td style="font-size:11px;color:var(--text-secondary)">${(r.violations || []).join(', ') || '-'}</td>
+        <td>
+          <button class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="visualizeRun('${r.case_id}', ${r.seed})">Visualize</button>
+        </td>
       </tr>
     `).join('');
 
-            card.scrollIntoView({ behavior: 'smooth' });
+      card.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Visualization Logic
+    const visModal = document.getElementById('vis-modal');
+    const visCanvas = document.getElementById('vis-canvas');
+    const visTooltip = document.getElementById('vis-tooltip');
+    const visClose = document.getElementById('vis-close');
+    let renderer = null;
+
+    visClose.addEventListener('click', () => {
+      visModal.style.display = 'none';
+      if (renderer) renderer.setPath(null);
+    });
+
+    async function visualizeRun(caseId, seed) {
+      visModal.style.display = 'flex';
+      const title = document.getElementById('vis-title');
+      const meta = document.getElementById('vis-meta');
+      title.textContent = `Loading ${caseId} (Seed ${seed})...`;
+      meta.innerHTML = `<span class="spinner"></span> Fetching data`;
+
+      if (!renderer) {
+        renderer = new GridRenderer(visCanvas, { tooltip: visTooltip });
+      }
+
+      try {
+        const [caseData, resultsData] = await Promise.all([
+          API.get(`/api/case/${caseId}`),
+          API.get(`/api/results/${currentDetail}/case/${caseId}`)
+        ]);
+
+        title.textContent = `${caseId} — Seed ${seed}`;
+
+        const run = resultsData.runs.find(r => r.seed === seed);
+        if (!run) throw new Error("Run data not found for seed " + seed);
+
+        const runIndex = resultsData.runs.findIndex(r => r.seed === seed);
+        const pathData = resultsData.paths[runIndex];
+
+        if (pathData) {
+          const pLen = pathData.path ? pathData.path.length : 0;
+          meta.innerHTML = `
+                <span style="margin-right:15px">Status: ${verdictBadge(run.status)}</span>
+                <span style="margin-right:15px">Cost: <strong>${costString(run.cost)}</strong></span>
+                <span>Path Steps: <strong>${pLen}</strong></span>
+            `;
+        } else {
+          meta.innerHTML = `
+                <span style="margin-right:15px">Status: ${verdictBadge(run.status)}</span>
+                <span style="color:var(--wa)">No path data saved</span>
+            `;
         }
 
-        loadResults();
-    </script>
+        renderer.setCase(caseData);
+        renderer.setPath(pathData);
+
+        window.addEventListener('resize', () => {
+          if (visModal.style.display === 'flex' && renderer) {
+            renderer.resetView();
+          }
+        });
+
+      } catch (e) {
+        title.textContent = `Error loading visualization`;
+        meta.innerHTML = `<span style="color:var(--wa)">${e.message}</span>`;
+      }
+    }
+
+    loadResults();
+  </script>
 
 </body>
 

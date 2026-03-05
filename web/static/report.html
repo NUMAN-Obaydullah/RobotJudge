@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Report - RobotJudge-CI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .report-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 60px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            line-height: 1.8;
+            color: #2d3748;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            color: #1a202c;
+            margin-top: 3rem;
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 0.75rem;
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            color: var(--secondary);
+            margin-top: 2rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            margin: 2.5rem 0;
+            background: #f7fafc;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #718096;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 1rem;
+        }
+
+        .section-p {
+            margin-bottom: 1.25rem;
+            text-align: justify;
+        }
+
+        .highlight-box {
+            background: #fffaf0;
+            border-left: 4px solid #ed8936;
+            padding: 24px;
+            border-radius: 0 8px 8px 0;
+            margin: 2.5rem 0;
+            font-style: italic;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 1.5rem 0;
+        }
+
+        .feature-list li {
+            margin-bottom: 1rem;
+            padding-left: 32px;
+            position: relative;
+        }
+
+        .feature-list li::before {
+            content: '●';
+            color: var(--primary);
+            position: absolute;
+            left: 0;
+            font-size: 0.8rem;
+            top: 4px;
+        }
+
+        .tag {
+            background: #ebf8ff;
+            color: #2b6cb0;
+            padding: 6px 14px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        code {
+            background: #f7fafc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: var(--mono);
+            font-size: 0.9em;
+            color: #805ad5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar"></nav>
+
+    <div class="main-content">
+        <div class="report-container">
+            <div style="text-align: center; margin-bottom: 4rem;">
+                <span class="tag">Technical Specification v1.1</span>
+                <h1>Project Analysis Report</h1>
+                <p class="subtitle" style="font-size: 1.2rem; color: #4a5568;">RobotJudge-CI: An Integrated Framework
+                    for Pathfinding Algorithm Evaluation</p>
+            </div>
+
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <span class="meta-label">Architecture</span>
+                    <span class="meta-value">FastAPI / PostgreSQL / Docker</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Deployment Environment</span>
+                    <span class="meta-value">Containerized Cloud (Render / ngrok)</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Evaluation Engine</span>
+                    <span class="meta-value">GridPath Judge CLI v1.0</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Core Technologies</span>
+                    <span class="meta-value">Python 3.12, SQLAlchemy, SSE</span>
+                </div>
+            </div>
+
+            <h2>1. Prototype Objectives</h2>
+            <p class="section-p">
+                This prototype implements a minimal Robotics Online Judge pipeline heavily focused on an end-to-end
+                <strong>Continuous Integration (CI) evaluation workflow</strong>. Designed to act as an automated
+                algorithmic gatekeeper, it transparently benchmarks pathfinding solvers upon every code commit or pull
+                request. It operationalizes REQ-1 through REQ-6, and partially addresses REQ-7. The system currently
+                evaluates algorithms within a structured grid-based robotics proxy domain (GridPath). It is a
+                feasibility prototype and is not yet a full ROS2 or real-robot deployment.
+            </p>
+
+            <h2>2. System Architecture Overview</h2>
+            <p class="section-p">The system architecture relies on decoupled, modular components:</p>
+            <ul class="feature-list">
+                <li><strong>Problem Registry:</strong> A database storing versioned problems (e.g., v1.0, v1.2,
+                    v1.0-rc). The registry defines test tiers (Easy, Medium, Hard) and manages metadata such as
+                    environment dimensions and obstacle families.</li>
+                <li><strong>Submission Interface:</strong> A web frontend designed for immediate exploratory testing,
+                    mirroring the automated CI endpoints. The interface exposes configurations for seed range iteration
+                    and asynchronous runtime limits.</li>
+                <li><strong>Execution Engine:</strong> An isolated infrastructure utilizing Docker-based execution
+                    engineered specifically for seamless headless CI integration (e.g., GitHub Actions, GitLab CI). An
+                    isolated sandbox runner executes untrusted code with enforced system constraints to prevent host
+                    degradation during massive automated test suites.</li>
+                <li><strong>Scenario Generator:</strong> A module responsible for seeded generation of topological grids
+                    and tier-based test selection prior to execution.</li>
+                <li><strong>Oracle / Validator:</strong> A distinct mathematical module executing after the scenario. It
+                    manages path validation, metric computation, and acceptance rule mapping based on the solver's JSON
+                    output matrix.</li>
+                <li><strong>Result Store:</strong> A PostgreSQL relational schema handling historical storage of
+                    per-seed metrics and aggregated result sets.</li>
+                <li><strong>Dashboard:</strong> A user interface displaying the evaluation verdict, aggregate success
+                    rate, P95 runtime, mean cost, and a granular per-seed breakdown linked to raw artifact logs.</li>
+            </ul>
+
+            <h3>Architecture Diagram</h3>
+            <div
+                style="background: #f7fafc; padding: 20px; border-radius: 8px; font-family: var(--mono); text-align: center; border: 1px solid #e2e8f0; margin-bottom: 2rem; font-weight: 500;">
+                Developer Push (PR) &rarr; CI Trigger (GitHub Actions) &rarr; CI Runner (Docker) &rarr; Scenario
+                Generator<br>&darr;<br>CI Dashboards &larr; Result Aggregator &larr; Oracle/Validator
+            </div>
+
+            <h2>3. Execution Pipeline</h2>
+            <p class="section-p">The automated CI execution lifecycle operates linearly to ensure highly deterministic
+                regression testing outcomes:</p>
+            <ol style="padding-left: 20px; margin-bottom: 2rem; color: #4a5568; line-height: 1.8; font-weight: 500;">
+                <li><strong>Continuous Integration Trigger:</strong> A code push, PR hook, or manual submission triggers
+                    an asynchronous CI job.</li>
+                <li><strong>Provisioning:</strong> The container is instantiated securely.</li>
+                <li>Seeds are iterated.</li>
+                <li>For each seed:
+                    <ul
+                        style="list-style-type: circle; margin-left: 20px; margin-top: 4px; margin-bottom: 4px; font-weight: 400;">
+                        <li>Scenario generated.</li>
+                        <li>Solver executed.</li>
+                        <li>Metrics collected.</li>
+                    </ul>
+                </li>
+                <li>Aggregation performed.</li>
+                <li>Verdict computed.</li>
+                <li>Results stored and displayed.</li>
+            </ol>
+            <p class="section-p">
+                Determinism is controlled by explicitly linking solver execution to injected random seeds. Failures at
+                any stage (e.g., a timeout or memory crash) halt the specific seed execution, return an error code log
+                artifact, and aggregate into the overall suite failure rate.
+            </p>
+
+            <h2>4. Requirement Coverage Mapping</h2>
+            <ul class="feature-list">
+                <li><strong>REQ-1 (Container-first execution):</strong> Implemented via Docker runner. The system
+                    instantiates an unprivileged, isolated sandbox container for each execution, preventing access to
+                    the host server.</li>
+                <li><strong>REQ-2 (Seed governance):</strong> Implemented via the Submission Interface allowing explicit
+                    seed range configuration. Success rates and costs are calculated across the range, supported by a
+                    per-seed breakdown table.</li>
+                <li><strong>REQ-3 (Scenario&ndash;Oracle separation):</strong> Implemented via separate module
+                    architectures. The scenario generation script executes prior to the solver, while the validator
+                    script (Oracle) executes post-run to verify the output against the generated grid schema.</li>
+                <li><strong>REQ-4 (Statistical verdicts):</strong> Implemented via the aggregator module. The system
+                    computes cross-seed mathematical averages and explicitly exposes the 95th Percentile (P95) execution
+                    runtime and average path cost metrics.</li>
+                <li><strong>REQ-5 (Artifact traceability):</strong> Implemented via the Result Store. The system manages
+                    testcase versioning and stores all testcase JSON logic, container paths, output artifacts, and
+                    relational metrics historically in PostgreSQL.</li>
+                <li><strong>REQ-6 (Resource/time constraints):</strong> Implemented via the Execution Engine. The
+                    sandbox enforces strict asynchronous runtime limits (producing TLE verdicts) and utilizes
+                    <code>psutil</code> to record and restrict maximum memory usage.
+                </li>
+                <li><strong>REQ-7 (Safety constraints):</strong> Partially achieved. The Oracle executes kinematic
+                    bounds checking (prohibiting impossible infinite-acceleration 180-degree grid inversions). Full
+                    physical momentum simulation requires future robotics integration.</li>
+            </ul>
+
+            <h3>Requirement Implementation Matrix</h3>
+            <div class="table-container"
+                style="margin-bottom: 2rem; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
+                <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                    <thead style="background: #edf2f7;">
+                        <tr>
+                            <th style="padding: 12px; border-bottom: 2px solid #e2e8f0;">Requirement</th>
+                            <th style="padding: 12px; border-bottom: 2px solid #e2e8f0;">Supported</th>
+                            <th style="padding: 12px; border-bottom: 2px solid #e2e8f0;">Evidence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px;"><strong>REQ-1</strong></td>
+                            <td style="padding: 12px;"><span class="tag"
+                                    style="background:#def7ec;color:#03543f;">Yes</span></td>
+                            <td style="padding: 12px;">Docker runner</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px;"><strong>REQ-2</strong></td>
+                            <td style="padding: 12px;"><span class="tag"
+                                    style="background:#def7ec;color:#03543f;">Yes</span></td>
+                            <td style="padding: 12px;">Seed range + breakdown</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px;"><strong>REQ-3</strong></td>
+                            <td style="padding: 12px;"><span class="tag"
+                                    style="background:#def7ec;color:#03543f;">Yes</span></td>
+                            <td style="padding: 12px;">Separate generator/validator stages</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px;"><strong>REQ-4</strong></td>
+                            <td style="padding: 12px;"><span class="tag"
+                                    style="background:#def7ec;color:#03543f;">Yes</span></td>
+                            <td style="padding: 12px;">Aggregated multi-run metrics</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px;"><strong>REQ-5</strong></td>
+                            <td style="padding: 12px;"><span class="tag"
+                                    style="background:#def7ec;color:#03543f;">Yes</span></td>
+                            <td style="padding: 12px;">Logs + stored metrics</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px;"><strong>REQ-6</strong></td>
+                            <td style="padding: 12px;"><span class="tag"
+                                    style="background:#def7ec;color:#03543f;">Yes</span></td>
+                            <td style="padding: 12px;">Timeout + runtime tracking</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px;"><strong>REQ-7</strong></td>
+                            <td style="padding: 12px;"><span class="tag"
+                                    style="background:#fef3c7;color:#92400e;">Partial</span></td>
+                            <td style="padding: 12px;">Planned robotics safety module</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>5. Continuous Integration (CI) Automation</h2>
+            <p class="section-p">
+                A foundational feature of RobotJudge-CI is its native capability to operate as an automated gatekeeper
+                within modern Git workflows. By exposing a headless CLI interface (<code>judgecli</code>) that mirrors
+                the web dashboard, the system can be seamlessly integrated into CI/CD pipelines (e.g., GitHub Actions,
+                GitLab CI).
+            </p>
+            <ul class="feature-list" style="margin-bottom: 2rem;">
+                <li><strong>Automated Regression Testing:</strong> Every code commit or pull request automatically
+                    triggers the isolated Docker execution pipeline against the versioned Problem Registry.</li>
+                <li><strong>Performance Benchmarking:</strong> The CI runner enforces strict performance thresholds. If
+                    a new solver commit violates the P95 runtime constraint or regresses in average path cost, the CI
+                    job automatically fails the build.</li>
+                <li><strong>Traceable Artifacts:</strong> Detailed execution logs, path JSONs, and metrics are preserved
+                    as CI artifacts, establishing a longitudinal performance history for the robotics algorithm.</li>
+            </ul>
+
+            <h2>6. Limitations and Roadmap</h2>
+            <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 2rem;">
+                <div
+                    style="flex: 1; min-width: 250px; background: #fff5f5; border: 1px solid #fed7d7; padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-top:0; color: #c53030; margin-bottom: 12px;">Prototype Limitations</h4>
+                    <ul style="padding-left: 20px; margin: 0; color: #742a2a; font-size: 0.95rem;">
+                        <li style="margin-bottom: 8px;">Domain currently simplified (grid proxy).</li>
+                        <li style="margin-bottom: 8px;">No direct ROS2 adapter yet.</li>
+                        <li style="margin-bottom: 8px;">No real-robot integration.</li>
+                        <li style="margin-bottom: 8px;">Safety enforcement limited.</li>
+                        <li>Scalability not yet benchmarked.</li>
+                    </ul>
+                </div>
+                <div
+                    style="flex: 1; min-width: 250px; background: #f0fff4; border: 1px solid #c6f6d5; padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-top:0; color: #276749; margin-bottom: 12px;">Future Roadmap</h4>
+                    <ul style="padding-left: 20px; margin: 0; color: #22543d; font-size: 0.95rem;">
+                        <li style="margin-bottom: 8px;">ROS2 adapter layer.</li>
+                        <li style="margin-bottom: 8px;">Webots/Gazebo integration.</li>
+                        <li style="margin-bottom: 8px;">Real-robot tier.</li>
+                        <li>Safety constraint enforcement module.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div
+                style="margin-top: 5rem; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 2rem; color: #a0aec0; font-size: 0.85rem; letter-spacing: 0.05em;">
+                DOCUMENT PRODUCED BY ROBOTJUDGE DOCUMENTATION ENGINE &copy; 2026
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=2.0"></script>
+    <script>
+        renderNavbar('report');
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,10 @@
+{
+  "family": "maze",
+  "tier": "hard",
+  "generator_seed": 701808367,
+  "difficulty": "hard",
+  "grid_size": [
+    250,
+    223
+  ]
+}

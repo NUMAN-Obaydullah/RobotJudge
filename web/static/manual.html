@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operations Manual - RobotJudge-CI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .manual-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 60px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            line-height: 1.8;
+            color: #2d3748;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            color: #1a202c;
+            margin-top: 3rem;
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 0.75rem;
+            font-size: 1.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h2::before {
+            content: 'CHAPTER';
+            font-size: 0.65rem;
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.1em;
+        }
+
+        h3 {
+            color: var(--secondary);
+            margin-top: 2rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .function-card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .step-list {
+            list-style: none;
+            padding: 0;
+            margin: 1.5rem 0;
+        }
+
+        .step-list li {
+            margin-bottom: 1rem;
+            padding-left: 40px;
+            position: relative;
+        }
+
+        .step-list li::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            top: 2px;
+            width: 24px;
+            height: 24px;
+            background: #edf2f7;
+            color: #4a5568;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border: 1px solid #cbd5e0;
+        }
+
+        code {
+            background: #fff5f5;
+            color: #c53030;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: var(--mono);
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 24px;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-family: var(--mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .tech-note {
+            background: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 20px;
+            margin: 2rem 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #2c5282;
+        }
+
+        .tag {
+            background: #f0fff4;
+            color: #276749;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar" id="navbar"></nav>
+
+    <div class="main-content">
+        <div class="manual-container">
+            <div style="text-align: center; margin-bottom: 4rem;">
+                <span class="tag">Reference Documentation v1.1</span>
+                <h1>System Operations Manual</h1>
+                <p class="subtitle" style="font-size: 1.1rem; color: #4a5568;">Comprehensive Guide to the RobotJudge-CI
+                    Continuous Integration & Automated Evaluation Framework</p>
+            </div>
+
+            <h2>I. Algorithmic Dataset Exploration</h2>
+            <div class="function-card">
+                <h3>1.1 Problem Dashboard Architecture</h3>
+                <p>The primary interface serves as a comprehensive registry of pathfinding challenges. Key
+                    functionalities include:</p>
+                <ul class="step-list">
+                    <li data-step="1"><strong>Multi-Tier Filtering & Version Control (REQ-5):</strong> Segregate
+                        testcases by computational complexity (Easy, Medium, Hard) to target specific algorithmic stress
+                        points. Every topology is strictly version-controlled (e.g. v1.0) to guarantee longitudinal
+                        reproducibility across evaluation cycles.</li>
+                    <li data-step="2"><strong>Dynamic Metadata Sorting:</strong> Sort cases by identifier, obstacle
+                        family, grid dimensions, or search budget to identify outliers.</li>
+                    <li data-step="3"><strong>Universal Search:</strong> Instant lookups across Case IDs and environment
+                        categories (e.g., "maze", "trap").</li>
+                </ul>
+            </div>
+
+            <div class="function-card">
+                <h3>1.2 Visual Diagnostic Environment</h3>
+                <p>Selecting a specific Case ID initiates the high-fidelity visualization layer:</p>
+                <ul class="step-list">
+                    <li data-step="1"><strong>Spatial Rendering:</strong> Interactive grid display highlighting start
+                        (S) and goal (G) coordinates.</li>
+                    <li data-step="2"><strong>Kinematic Safety Analysis (REQ-7):</strong> Detailed view of movement
+                        constraints. The validation Oracle explicitly enforces mathematical safety bounds, ensuring
+                        output trajectories do not contain impossible physical maneuvers (e.g., infinite acceleration
+                        180-degree reversals).</li>
+                </ul>
+            </div>
+
+            <h2>II. Solver Evaluation and Integration</h2>
+            <div class="function-card">
+                <h3>2.1 Submission Modalities</h3>
+                <p>RobotJudge-CI supports a dual-path submission system designed for both baseline comparison and
+                    proprietary development:</p>
+                <ul class="step-list">
+                    <li data-step="1"><strong>Intrinsic Baseline Selection:</strong> Immediate execution of pre-baked
+                        reference algorithms (BFS, Dijkstra, A*) to establish performance benchmarks.</li>
+                    <li data-step="2"><strong>External Script Injection:</strong> Uploading of arbitrary
+                        <code>.py</code> files. The system dynamically injects these into the evaluation container.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="function-card">
+                <h3>2.2 Real-Time Execution Lifecycle</h3>
+                <p>Upon initialization via the "Run Solver" trigger, the system manages a complex asynchronous execution
+                    flow:</p>
+                <ul class="step-list">
+                    <li data-step="1"><strong>SSE-Driven Progress Synchronization:</strong> The backend utilizes
+                        Server-Sent Events to provide sub-second updates on evaluation progress.</li>
+                    <li data-step="2"><strong>Sandboxed Execution:</strong> Solvers are executed in an isolated
+                        environment with enforced CPU time limits.</li>
+                    <li data-step="3"><strong>Live Result Injection:</strong> As testcases are completed, metrics are
+                        programmatically committed to the PostgreSQL core and rendered in the progress view.</li>
+                </ul>
+            </div>
+
+            <h2>III. Performance Analytics and Reporting</h2>
+            <div class="function-card">
+                <h3>3.1 Longitudinal Metric Analysis</h3>
+                <p>The "Status" module provides a high-level overview of historical solver efficacy:</p>
+                <ul class="step-list">
+                    <li data-step="1"><strong>Statistical Success Aggregation (REQ-4):</strong> Percentage-based metrics
+                        detailing testcase coverage within time/cost budgets across all stochastic seeds.</li>
+                    <li data-step="2"><strong>Computational Variance (P95):</strong> Programmatic calculation of the
+                        95th Percentile latency (P95 Runtime) to provide deep statistical insights into worst-case
+                        temporal stability.</li>
+                    <li data-step="3"><strong>Path Optimality:</strong> Comparative cost metrics ensuring the algorithm
+                        identifies the globally optimal trajectory without safety infractions.</li>
+                </ul>
+            </div>
+
+            <h2>IV. Continuous Integration (CI) and Automated Validation</h2>
+            <div class="function-card">
+                <h3>4.1 Core CI Philosophy: The Automated Gatekeeper</h3>
+                <p>RobotJudge-CI is fundamentally architected as a <strong>Continuous Integration (CI) platform</strong>
+                    for robotics pathfinding. It shifts algorithmic evaluation from manual, ad-hoc local execution to a
+                    fully automated pipeline driven by code commits and pull requests (e.g., via GitHub Actions or
+                    GitLab CI).</p>
+                <ul class="step-list">
+                    <li data-step="1"><strong>Automated Regression Testing:</strong> Every code push automatically
+                        spawns the isolated headless execution engine, running the solver against the entire Versioned
+                        Problem Registry to proactively catch algorithmic bugs.</li>
+                    <li data-step="2"><strong>Performance Benchmarking Gate:</strong> The CI pipeline acts as a strict
+                        programmatic gatekeeper. If a commit violates the absolute runtime constraints (REQ-6) or causes
+                        a regression in average path cost, the CI job automatically fails the build.</li>
+                    <li data-step="3"><strong>Traceable Artifact Generation:</strong> The native CI workflow records
+                        structured P95 metrics, deterministic logs, and visual path artifacts per-seed, establishing a
+                        longitudinal performance history that can be audited over time (REQ-5).</li>
+                </ul>
+            </div>
+
+            <h2>V. Solver Development & Requirements</h2>
+            <div class="function-card">
+                <h3>5.1 Standard Solver Template</h3>
+                <p>All pathfinding submissions must adhere to the <code>Solver</code> class interface below to interact
+                    seamlessly with the execution and validation pipeline:</p>
+                <pre style="background: #2d3748; color: #f7fafc; padding: 16px; border-radius: 6px; overflow-x: auto;"><code>class Solver:
+    def __init__(self, start, goal, grid, traps):
+        """
+        Standard environment initialization injected by the engine.
+        :param start: Tuple (x, y) starting coordinate.
+        :param goal: Tuple (x, y) destination coordinate.
+        :param grid: 2D array representation of the primary layout.
+        :param traps: List of coordinates representing hazards.
+        """
+        self.start = start
+        self.goal = goal
+        self.grid = grid
+        self.traps = traps
+
+    def solve(self):
+        """
+        Primary execution hook for resolving the path.
+        :return: A list of (x, y) tuples from start to goal.
+                 Return an empty list if no valid path exists.
+        """
+        # --- Implementation goes here ---
+        path = [self.start, self.goal]
+        return path
+</code></pre>
+            </div>
+
+            <div
+                style="margin-top: 5rem; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 2rem; color: #a0aec0; font-size: 0.85rem; letter-spacing: 0.05em;">
+                OFFICIAL SYSTEM MANUAL &bull; DOCUMENT ID: RJ-MAN-2026-001
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=2.0"></script>
+    <script>
+        renderNavbar('manual');
+    </script>
+</body>
+
+</html>

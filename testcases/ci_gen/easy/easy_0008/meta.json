@@ -1,0 +1,10 @@
+{
+  "family": "random_field",
+  "tier": "easy",
+  "generator_seed": 1812140441,
+  "difficulty": "easy",
+  "grid_size": [
+    43,
+    50
+  ]
+}
