@@ -4,20 +4,27 @@ Follow these steps to get the project running on a fresh Windows PC.
 
 ## Option 1: Using Docker (easiest & Recommended)
 
-1.  **Install Docker Desktop**: Download and install from [docker.com](https://www.docker.com/products/docker-desktop/).
-2.  **Clone the Repository**:
+### 1-A. Install Docker Desktop
+1.  **Download**: Get the installer from [docker.com](https://www.docker.com/products/docker-desktop/).
+2.  **Install**: Run the installer. Ensure **"Use WSL 2 instead of Hyper-V"** is checked (it usually is by default).
+3.  **WSL2 Update**: if prompted, follow the link to install the [WSL2 Linux Kernel Update](https://learn.microsoft.com/en-us/windows/wsl/install).
+4.  **Restart**: You will likely need to restart your PC after installation.
+5.  **Start Docker**: Open Docker Desktop and wait for the "Engine" to start (green icon at bottom left).
+
+### 1-B. Project Setup
+1.  **Clone the Repository**:
     ```bash
     git clone https://github.com/NUMAN-Obaydullah/RobotJudge.git
     cd RobotJudge
     ```
-3.  **Setup Environment Variables**:
+2.  **Setup Environment Variables**:
     - Copy `.env.example` to `.env`.
-    - Edit `.env` and add your `NGROK_AUTHTOKEN` (optional, for public access).
-4.  **Run with Docker Compose**:
+    - Edit `.env` and add your `NGROK_AUTHTOKEN` (optional).
+3.  **Run with Docker Compose**:
     ```bash
     docker-compose up --build
     ```
-5.  **Access the App**: Open [http://localhost:8000](http://localhost:8000) in your browser.
+4.  **Access the App**: Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ---
 

@@ -4,7 +4,8 @@ To run this project on a fresh Windows machine with "less work", ensures the fol
 
 ## Software Requirements
 - **Git**: [Download Git for Windows](https://git-scm.com/download/win). Required to clone the repository.
-- **Docker Desktop**: [Download Docker Desktop](https://www.docker.com/products/docker-desktop/). **Highly Recommended** for the easiest setup.
+- **Docker Desktop**: [Download Docker Desktop](https://www.docker.com/products/docker-desktop/). **Highly Recommended**.
+  - *Note*: Requires WSL2 (Windows Subsystem for Linux), which Docker will help you install.
 - **Python 3.10+**: [Download Python](https://www.python.org/downloads/windows/) (if running natively without Docker).
 - **Ngrok**: [Sign up for Ngrok](https://dashboard.ngrok.com/signup) to get an auth token if you want to expose the web interface publicly.
 
