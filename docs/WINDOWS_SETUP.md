@@ -24,7 +24,13 @@ Follow these steps to get the project running on a fresh Windows PC.
     ```bash
     docker-compose up --build
     ```
-4.  **Access the App**: Open [http://localhost:8000](http://localhost:8000) in your browser.
+4.  **Access the App Locally**: Open [http://localhost:8000](http://localhost:8000).
+5.  **Expose Publicly (Ngrok)**:
+    - Go to [dashboard.ngrok.com](https://dashboard.ngrok.com/get-started/your-authtoken).
+    - Copy your **Your Authtoken**.
+    - Paste it into your `.env` file for the `NGROK_AUTHTOKEN` variable.
+    - Restart docker: `docker-compose up -d`.
+    - **Find your public link**: Go to the Ngrok dashboard [Endpoints section](https://dashboard.ngrok.com/cloud-edge/endpoints) to see your generated `.ngrok-free.app` URL.
 
 ---
 
